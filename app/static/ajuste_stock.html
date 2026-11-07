@@ -1,0 +1,31 @@
+{% extends 'base.html' %}
+{% block title %}Ajuste de stock{% endblock %}
+{% block content %}
+<h1>Movimiento manual de stock</h1>
+<div class="flash flash-message">Todo cambio genera un movimiento auditable con usuario, fecha y motivo.
+No es posible modificar existencias sin dejar registro.</div>
+<form method="post" class="card" style="max-width:640px">
+  <input type="hidden" name="_csrf" value="{{ csrf_token }}">
+  <label>Producto *
+    <select name="product_id" required>
+      <option value="">— seleccione —</option>
+      {% for p in productos %}
+      <option value="{{ p.id }}">{{ p.code }} — {{ p.description }} (stock: {{ p.stock|qty }} {{ p.base_unit }})</option>
+      {% endfor %}
+    </select></label>
+  <div class="form-row">
+    <label>Tipo de movimiento *
+      <select name="type" required>
+        <option value="entrada">Entrada (suma stock)</option>
+        <option value="ajuste">Ajuste por conteo físico (ingresa el stock REAL contado)</option>
+        <option value="rotura">Rotura / merma (resta)</option>
+        <option value="perdida">Pérdida o robo (resta)</option>
+        <option value="inventario">Corrección de inventario (suma/resta según signo)</option>
+      </select></label>
+    <label>Cantidad * <input name="qty" required inputmode="decimal" placeholder="Ej.: 2,5"></label>
+  </div>
+  <label>Motivo * <input name="reason" required placeholder="Ej.: conteo mensual, rotura en exhibición…"></label>
+  <div class="toolbar"><button class="btn primary">Registrar movimiento</button>
+    <a class="btn" href="{{ url_for('products.movimientos') }}">Ver movimientos</a></div>
+</form>
+{% endblock %}
