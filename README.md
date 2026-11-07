@@ -1,4 +1,4 @@
-# FerreGest AR — Sistema de gestión integral para ferreterías (Argentina)
+# Ferreteria AR — Sistema de gestión integral para ferreterías (Argentina)
 
 Software **real, funcional e instalable** de administración comercial para
 ferreterías: punto de venta con cantidades fraccionadas y conversiones de
