@@ -1,0 +1,31 @@
+{% extends 'base.html' %}
+{% block title %}Proveedores{% endblock %}
+{% block content %}
+<h1>Proveedores</h1>
+<div class="card">
+  <form class="toolbar" method="get">
+    <input name="q" value="{{ q }}" placeholder="Nombre o CUIT…" style="min-width:220px">
+    <button class="btn primary">Buscar</button>
+    <span class="spacer"></span>
+    {% if 'compras.gestionar' in user_perms %}
+    <a class="btn success" href="{{ url_for('purchases.proveedor_nuevo') }}">+ Nuevo proveedor</a>
+    {% endif %}
+  </form>
+</div>
+<div class="table-wrap">
+<table>
+  <thead><tr><th>Nombre</th><th>CUIT</th><th>Teléfono</th><th>Contacto</th>
+    <th class="num">Saldo a pagar</th><th></th></tr></thead>
+  <tbody>
+  {% for s in proveedores %}
+  <tr>
+    <td><a href="{{ url_for('purchases.proveedor_detalle', sid=s.id) }}">{{ s.name }}</a></td>
+    <td>{{ s.cuit or '—' }}</td><td>{{ s.phone or '—' }}</td><td>{{ s.contact or '—' }}</td>
+    <td class="num {{ 'bold' if saldos.get(s.id,0) > 0 }}">{{ saldos.get(s.id,0)|money }}</td>
+    <td><a class="btn sm" href="{{ url_for('purchases.proveedor_detalle', sid=s.id) }}">Ficha</a></td>
+  </tr>
+  {% else %}<tr><td colspan="6" class="empty">Sin proveedores.</td></tr>{% endfor %}
+  </tbody>
+</table>
+</div>
+{% endblock %}

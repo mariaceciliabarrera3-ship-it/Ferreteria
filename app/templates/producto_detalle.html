@@ -1,0 +1,267 @@
+{% extends 'base.html' %}
+{% block title %}{{ p.description }}{% endblock %}
+{% block content %}
+<h1>{{ p.description }}
+  <span class="badge {{ 'badge-ok' if p.active else 'badge-err' }}">{{ 'activo' if p.active else 'inactivo' }}</span>
+</h1>
+<div class="grid grid-2">
+  <form method="post" class="card">
+    <input type="hidden" name="_csrf" value="{{ csrf_token }}">
+    <h2 style="margin-top:0">Datos del producto</h2>
+    <div class="form-row">
+      <label>Código <input name="code" value="{{ p.code }}" {{ 'readonly' if 'productos.gestionar' not in user_perms }}></label>
+      <label>Código de barras <input name="barcode" value="{{ p.barcode }}"></label>
+    </div>
+    <label>Descripción <input name="description" value="{{ p.description }}"></label>
+    <div class="form-row-4">
+      <label>Marca <input name="brand" value="{{ p.brand }}"></label>
+      <label>Modelo <input name="model" value="{{ p.model }}"></label>
+      <label>Categoría <select name="category_id"><option value="">—</option>
+        {% for c in categories %}<option value="{{ c.id }}" {{ 'selected' if c.id==p.category_id }}>{{ c.name }}</option>{% endfor %}
+      </select></label>
+      <label>Proveedor <select name="supplier_id"><option value="">—</option>
+        {% for s in suppliers %}<option value="{{ s.id }}" {{ 'selected' if s.id==p.supplier_id }}>{{ s.name }}</option>{% endfor %}
+      </select></label>
+    </div>
+    <div class="form-row-4">
+      <label>Unidad base <select name="base_unit">
+        {% for u in units %}<option value="{{ u.name }}" {{ 'selected' if u.name==p.base_unit }}>{{ u.name }}</option>{% endfor %}
+      </select></label>
+      <label>Unidad venta defecto <select name="default_sale_unit">
+        {% for u in units %}<option value="{{ u.name }}" {{ 'selected' if u.name==p.default_sale_unit }}>{{ u.name }}</option>{% endfor %}
+      </select></label>
+      <label>Costo reposición <input name="cost_price" value="{{ p.cost_price }}"></label>
+      <label>Costo promedio <input value="{{ p.avg_cost }}" readonly></label>
+    </div>
+    <div class="form-row-4">
+      <label>Precio venta <input name="sale_price" value="{{ p.sale_price }}"></label>
+      <label>Precio mayorista <input name="wholesale_price" value="{{ p.wholesale_price }}"></label>
+      <label>Precio especial <input name="special_price" value="{{ p.special_price }}"></label>
+      <label>Margen sobre costo <input value="{{ margin }}%" readonly></label>
+    </div>
+    <div class="form-row-4">
+      <label>Stock actual <input value="{{ p.stock|qty }} {{ p.base_unit }}" readonly></label>
+      <label>Stock mínimo <input name="stock_min" value="{{ p.stock_min }}"></label>
+      <label>Stock máximo <input name="stock_max" value="{{ p.stock_max }}"></label>
+      <label>Ubicación <input name="location" value="{{ p.location }}"></label>
+    </div>
+    <div class="form-row">
+      <label>Impuesto propio
+        <select name="tax_id"><option value="">— hereda alcance global/categoría —</option>
+          {% for t in taxes %}<option value="{{ t.id }}" {{ 'selected' if t.id==p.tax_id }}>{{ t.name }}</option>{% endfor %}
+        </select></label>
+      <label>Observaciones <input name="notes" value="{{ p.notes }}"></label>
+    </div>
+    <fieldset>
+      <legend>Conversiones de unidades</legend>
+      <div id="convs">
+      {% for c in conversions %}
+        <div class="form-row">
+          <label>Unidad <input name="conv_unit" value="{{ c.unit }}"></label>
+          <label>Equivale a (unidades base) <input name="conv_factor" value="{{ c.factor }}"></label>
+        </div>
+      {% endfor %}
+      </div>
+      <button type="button" class="btn sm" id="add-conv">+ Agregar conversión</button>
+    </fieldset>
+    {% if 'productos.gestionar' in user_perms %}
+    <div class="toolbar">
+      <button class="btn primary">Guardar cambios</button>
+    </div>
+    {% endif %}
+  </form>
+
+  <div>
+    <div class="card">
+      <h2 style="margin-top:0">Valorización</h2>
+      <table>
+        <tr><td>Stock a costo promedio</td><td class="num bold">{{ (p.stock * p.avg_cost)|money }}</td></tr>
+        <tr><td>Stock a precio de venta</td><td class="num bold">{{ (p.stock * p.sale_price)|money }}</td></tr>
+        <tr><td>Ventas del mes (unidades)</td><td class="num">{{ ventas_mes.q|qty }}</td></tr>
+        <tr><td>Última compra</td><td class="num">{{ p.last_purchase_date|fecha }}</td></tr>
+        <tr><td>Última modificación</td><td class="num">{{ p.updated_at|fecha }}</td></tr>
+      </table>
+      {% if 'productos.gestionar' in user_perms %}
+      <form method="post" action="{{ url_for('products.inactivar', pid=p.id) }}" style="margin-top:.7rem">
+        <input type="hidden" name="_csrf" value="{{ csrf_token }}">
+        <button class="btn sm {{ 'danger' if p.active else 'success' }}">
+          {{ 'Desactivar producto' if p.active else 'Reactivar producto' }}</button>
+      </form>
+      {% endif %}
+    </div>
+    <div class="card">
+      <h2 style="margin-top:0">Historial de precios</h2>
+      <table>
+        <thead><tr><th>Campo</th><th class="num">Anterior</th><th class="num">Nuevo</th><th>Fecha</th></tr></thead>
+        <tbody>
+        {% for h in precios %}
+        <tr><td>{{ h.field }}</td><td class="num">{{ h.old_value|money }}</td>
+          <td class="num">{{ h.new_value|money }}</td><td class="small">{{ h.changed_at|fecha }}</td></tr>
+        {% else %}<tr><td colspan="4" class="empty">Sin cambios registrados.</td></tr>{% endfor %}
+        </tbody>
+      </table>
+    </div>
+    <div class="card">
+      <h2 style="margin-top:0">Historial de stock (últimos 50)</h2>
+      <div class="table-wrap"><table>
+        <thead><tr><th>Fecha</th><th>Tipo</th><th class="num">Δ</th><th class="num">Resultado</th><th>Usuario</th></tr></thead>
+        <tbody>
+        {% for m in movimientos %}
+        <tr><td class="small">{{ m.datetime|fecha }}</td><td>{{ m.type }}</td>
+          <td class="num {{ 'bold' if m.qty>0 }}">{{ m.qty|qty }}</td>
+          <td class="num">{{ m.stock_after|qty }}</td><td class="small">{{ m.username or '—' }}</td></tr>
+        {% else %}<tr><td colspan="5" class="empty">Sin movimientos.</td></tr>{% endfor %}
+        </tbody>
+      </table></div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', ()=>{
+  document.getElementById('add-conv').addEventListener('click', ()=>{
+    const row = document.createElement('div');
+    row.className = 'form-row';
+    // ARQ-01: nodos DOM en lugar de plantillas HTML interpoladas.
+    row.appendChild(el('label', null, document.createTextNode('Unidad '),
+      el('input', {name: 'conv_unit', placeholder: 'rollo'})));
+    row.appendChild(el('label', null,
+      document.createTextNode('Cuántas unidades base equivale '),
+      el('input', {name: 'conv_factor', placeholder: '100', inputmode: 'decimal'})));
+    box.appendChild(row);l' %}
+{% block title %}{{ p.description }}{% endblock %}
+{% block content %}
+<h1>{{ p.description }}
+  <span class="badge {{ 'badge-ok' if p.active else 'badge-err' }}">{{ 'activo' if p.active else 'inactivo' }}</span>
+</h1>
+<div class="grid grid-2">
+  <form method="post" class="card">
+    <input type="hidden" name="_csrf" value="{{ csrf_token }}">
+    <h2 style="margin-top:0">Datos del producto</h2>
+    <div class="form-row">
+      <label>Código <input name="code" value="{{ p.code }}" {{ 'readonly' if 'productos.gestionar' not in user_perms }}></label>
+      <label>Código de barras <input name="barcode" value="{{ p.barcode }}"></label>
+    </div>
+    <label>Descripción <input name="description" value="{{ p.description }}"></label>
+    <div class="form-row-4">
+      <label>Marca <input name="brand" value="{{ p.brand }}"></label>
+      <label>Modelo <input name="model" value="{{ p.model }}"></label>
+      <label>Categoría <select name="category_id"><option value="">—</option>
+        {% for c in categories %}<option value="{{ c.id }}" {{ 'selected' if c.id==p.category_id }}>{{ c.name }}</option>{% endfor %}
+      </select></label>
+      <label>Proveedor <select name="supplier_id"><option value="">—</option>
+        {% for s in suppliers %}<option value="{{ s.id }}" {{ 'selected' if s.id==p.supplier_id }}>{{ s.name }}</option>{% endfor %}
+      </select></label>
+    </div>
+    <div class="form-row-4">
+      <label>Unidad base <select name="base_unit">
+        {% for u in units %}<option value="{{ u.name }}" {{ 'selected' if u.name==p.base_unit }}>{{ u.name }}</option>{% endfor %}
+      </select></label>
+      <label>Unidad venta defecto <select name="default_sale_unit">
+        {% for u in units %}<option value="{{ u.name }}" {{ 'selected' if u.name==p.default_sale_unit }}>{{ u.name }}</option>{% endfor %}
+      </select></label>
+      <label>Costo reposición <input name="cost_price" value="{{ p.cost_price }}"></label>
+      <label>Costo promedio <input value="{{ p.avg_cost }}" readonly></label>
+    </div>
+    <div class="form-row-4">
+      <label>Precio venta <input name="sale_price" value="{{ p.sale_price }}"></label>
+      <label>Precio mayorista <input name="wholesale_price" value="{{ p.wholesale_price }}"></label>
+      <label>Precio especial <input name="special_price" value="{{ p.special_price }}"></label>
+      <label>Margen sobre costo <input value="{{ margin }}%" readonly></label>
+    </div>
+    <div class="form-row-4">
+      <label>Stock actual <input value="{{ p.stock|qty }} {{ p.base_unit }}" readonly></label>
+      <label>Stock mínimo <input name="stock_min" value="{{ p.stock_min }}"></label>
+      <label>Stock máximo <input name="stock_max" value="{{ p.stock_max }}"></label>
+      <label>Ubicación <input name="location" value="{{ p.location }}"></label>
+    </div>
+    <div class="form-row">
+      <label>Impuesto propio
+        <select name="tax_id"><option value="">— hereda alcance global/categoría —</option>
+          {% for t in taxes %}<option value="{{ t.id }}" {{ 'selected' if t.id==p.tax_id }}>{{ t.name }}</option>{% endfor %}
+        </select></label>
+      <label>Observaciones <input name="notes" value="{{ p.notes }}"></label>
+    </div>
+    <fieldset>
+      <legend>Conversiones de unidades</legend>
+      <div id="convs">
+      {% for c in conversions %}
+        <div class="form-row">
+          <label>Unidad <input name="conv_unit" value="{{ c.unit }}"></label>
+          <label>Equivale a (unidades base) <input name="conv_factor" value="{{ c.factor }}"></label>
+        </div>
+      {% endfor %}
+      </div>
+      <button type="button" class="btn sm" id="add-conv">+ Agregar conversión</button>
+    </fieldset>
+    {% if 'productos.gestionar' in user_perms %}
+    <div class="toolbar">
+      <button class="btn primary">Guardar cambios</button>
+    </div>
+    {% endif %}
+  </form>
+
+  <div>
+    <div class="card">
+      <h2 style="margin-top:0">Valorización</h2>
+      <table>
+        <tr><td>Stock a costo promedio</td><td class="num bold">{{ (p.stock * p.avg_cost)|money }}</td></tr>
+        <tr><td>Stock a precio de venta</td><td class="num bold">{{ (p.stock * p.sale_price)|money }}</td></tr>
+        <tr><td>Ventas del mes (unidades)</td><td class="num">{{ ventas_mes.q|qty }}</td></tr>
+        <tr><td>Última compra</td><td class="num">{{ p.last_purchase_date|fecha }}</td></tr>
+        <tr><td>Última modificación</td><td class="num">{{ p.updated_at|fecha }}</td></tr>
+      </table>
+      {% if 'productos.gestionar' in user_perms %}
+      <form method="post" action="{{ url_for('products.inactivar', pid=p.id) }}" style="margin-top:.7rem">
+        <input type="hidden" name="_csrf" value="{{ csrf_token }}">
+        <button class="btn sm {{ 'danger' if p.active else 'success' }}">
+          {{ 'Desactivar producto' if p.active else 'Reactivar producto' }}</button>
+      </form>
+      {% endif %}
+    </div>
+    <div class="card">
+      <h2 style="margin-top:0">Historial de precios</h2>
+      <table>
+        <thead><tr><th>Campo</th><th class="num">Anterior</th><th class="num">Nuevo</th><th>Fecha</th></tr></thead>
+        <tbody>
+        {% for h in precios %}
+        <tr><td>{{ h.field }}</td><td class="num">{{ h.old_value|money }}</td>
+          <td class="num">{{ h.new_value|money }}</td><td class="small">{{ h.changed_at|fecha }}</td></tr>
+        {% else %}<tr><td colspan="4" class="empty">Sin cambios registrados.</td></tr>{% endfor %}
+        </tbody>
+      </table>
+    </div>
+    <div class="card">
+      <h2 style="margin-top:0">Historial de stock (últimos 50)</h2>
+      <div class="table-wrap"><table>
+        <thead><tr><th>Fecha</th><th>Tipo</th><th class="num">Δ</th><th class="num">Resultado</th><th>Usuario</th></tr></thead>
+        <tbody>
+        {% for m in movimientos %}
+        <tr><td class="small">{{ m.datetime|fecha }}</td><td>{{ m.type }}</td>
+          <td class="num {{ 'bold' if m.qty>0 }}">{{ m.qty|qty }}</td>
+          <td class="num">{{ m.stock_after|qty }}</td><td class="small">{{ m.username or '—' }}</td></tr>
+        {% else %}<tr><td colspan="5" class="empty">Sin movimientos.</td></tr>{% endfor %}
+        </tbody>
+      </table></div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', ()=>{
+  document.getElementById('add-conv').addEventListener('click', ()=>{
+    const row = document.createElement('div');
+    row.className = 'form-row';
+    // ARQ-01: nodos DOM en lugar de plantillas HTML interpoladas.
+    row.appendChild(el('label', null, document.createTextNode('Unidad '),
+      el('input', {name: 'conv_unit', placeholder: 'rollo'})));
+    row.appendChild(el('label', null,
+      document.createTextNode('Equivale a (unidades base) '),
+      el('input', {name: 'conv_factor', placeholder: '100', inputmode: 'decimal'})));
+    document.getElementById('convs').appendChild(row);
+  });
+});
+</script>
+{% endblock %}

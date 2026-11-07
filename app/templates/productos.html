@@ -1,0 +1,67 @@
+{% extends 'base.html' %}
+{% block title %}Productos{% endblock %}
+{% block content %}
+<h1>Productos</h1>
+<div class="grid grid-4" style="margin-bottom:.9rem">
+  <div class="kpi"><div class="label">Productos activos</div><div class="value">{{ productos|length }}</div></div>
+  <div class="kpi"><div class="label">Stock valorizado a costo</div><div class="value">{{ valor.cost|money }}</div></div>
+  <div class="kpi"><div class="label">A precio de venta</div><div class="value">{{ valor.retail|money }}</div></div>
+  <div class="kpi"><div class="label">Ítems con existencia</div><div class="value">{{ valor.items }}</div></div>
+</div>
+<div class="card">
+  <form class="toolbar" method="get">
+    <input name="q" value="{{ q }}" placeholder="Buscar nombre, código o barras…" style="min-width:230px">
+    <select name="categoria">
+      <option value="">Todas las categorías</option>
+      {% for c in categories %}<option value="{{ c.id }}" {{ 'selected' if cat==c.id|string }}>{{ c.name }}</option>{% endfor %}
+    </select>
+    <select name="filtro">
+      <option value="">Todos</option>
+      <option value="bajo" {{ 'selected' if filtro=='bajo' }}>Bajo mínimo</option>
+      <option value="sin" {{ 'selected' if filtro=='sin' }}>Sin existencia</option>
+    </select>
+    <button class="btn primary">Buscar</button>
+    {% if 'productos.gestionar' in user_perms %}
+    <span class="spacer"></span>
+    <a class="btn success" href="{{ url_for('products.nuevo') }}">+ Nuevo producto</a>
+    <a class="btn" href="{{ url_for('products.exportar') }}">⬇ CSV</a>
+    {% endif %}
+  </form>
+  {% if 'productos.gestionar' in user_perms %}
+  <form class="toolbar" method="post" action="{{ url_for('products.importar') }}"
+        enctype="multipart/form-data">
+    <input type="hidden" name="_csrf" value="{{ csrf_token }}">
+    <label class="small">Carga masiva CSV/Excel (código, descripción, marca, unidad, precios,
+      cantidad; opcional «accion_stock»: sumar | reemplazar):
+      <input type="file" name="archivo" accept=".csv,.xlsx" required></label>
+    <button class="btn sm">Importar</button>
+  </form>
+  {% endif %}
+</div>
+<div class="table-wrap">
+<table>
+  <thead><tr><th>Código</th><th>Descripción</th><th>Categoría</th><th>Unidad</th>
+    <th class="num">Stock</th><th class="num">Mín</th><th class="num">Costo</th>
+    <th class="num">Venta</th><th class="num">Margen</th><th></th></tr></thead>
+  <tbody>
+  {% for p in productos %}
+  <tr>
+    <td class="mono">{{ p.code }}</td>
+    <td><a href="{{ url_for('products.detalle', pid=p.id) }}">{{ p.description }}</a>
+      {% if p.brand %}<span class="muted small">{{ p.brand }}</span>{% endif %}</td>
+    <td>{{ p.category_name or '—' }}</td>
+    <td>{{ p.base_unit }}</td>
+    <td class="num {{ 'bold' if p.stock <= p.stock_min }}">
+      <span class="badge {{ 'badge-err' if p.stock<=0 else ('badge-warn' if p.stock<=p.stock_min else 'badge-ok') }}">{{ p.stock|qty }}</span></td>
+    <td class="num muted">{{ p.stock_min|qty }}</td>
+    <td class="num">{{ p.avg_cost|money }}</td>
+    <td class="num bold">{{ p.sale_price|money }}</td>
+    <td class="num muted">{% if p.avg_cost > 0 %}{{ (((p.sale_price - p.avg_cost) / p.avg_cost) * 100)|round(1) }}%{% else %}—{% endif %}</td>
+    <td><a class="btn sm" href="{{ url_for('products.detalle', pid=p.id) }}">Abrir</a></td>
+  </tr>
+  {% else %}<tr><td colspan="10" class="empty">Sin productos. ¡Dé el alta del primero!</td></tr>
+  {% endfor %}
+  </tbody>
+</table>
+</div>
+{% endblock %}

@@ -1,0 +1,80 @@
+{% extends 'base.html' %}
+{% block title %}{{ s.name }}{% endblock %}
+{% block content %}
+<h1>{{ s.name }}</h1>
+<div class="grid grid-3">
+  <div class="kpi"><div class="label">Saldo a pagar</div>
+    <div class="value {{ 'bold' if saldo > 0 }}">{{ saldo|money }}</div></div>
+  <div class="kpi"><div class="label">CUIT</div><div class="value" style="font-size:1.1rem">{{ s.cuit or '—' }}</div></div>
+  <div class="kpi"><div class="label">Condiciones</div>
+    <div class="value" style="font-size:1rem">{{ s.payment_terms or '—' }}</div></div>
+</div>
+<div class="grid grid-2" style="margin-top:1rem">
+  <div class="card">
+    <h2 style="margin-top:0">Datos</h2>
+    <form method="post">
+      <input type="hidden" name="_csrf" value="{{ csrf_token }}">
+      <input type="hidden" name="action" value="editar">
+      <div class="form-row"><label>Nombre <input name="name" value="{{ s.name }}"></label>
+        <label>CUIT <input name="cuit" value="{{ s.cuit }}"></label></div>
+      <div class="form-row"><label>Contacto <input name="contact" value="{{ s.contact }}"></label>
+        <label>Teléfono <input name="phone" value="{{ s.phone }}"></label></div>
+      <div class="form-row"><label>Correo <input name="email" value="{{ s.email }}"></label>
+        <label>Cond. pago <input name="payment_terms" value="{{ s.payment_terms }}"></label></div>
+      <label>Domicilio <input name="address" value="{{ s.address }}"></label>
+      <label>Observaciones <input name="notes" value="{{ s.notes }}"></label>
+      {% if 'compras.gestionar' in user_perms %}
+      <button class="btn primary" style="margin-top:.6rem">Guardar</button>
+      {% endif %}
+    </form>
+    {% if 'compras.gestionar' in user_perms and saldo > 0 %}
+    <h3>Registrar pago</h3>
+    <form method="post">
+      <input type="hidden" name="_csrf" value="{{ csrf_token }}">
+      <input type="hidden" name="action" value="pago">
+      <div class="form-row">
+        <label>Importe <input name="amount" value="{{ saldo }}" inputmode="decimal"></label>
+        <label>Medio <select name="method">
+          <option value="transferencia">Transferencia</option>
+          <option value="efectivo">Efectivo (desde caja)</option>
+          <option value="otro">Otro</option>
+        </select></label>
+      </div>
+      <label>Notas <input name="notes"></label>
+      <button class="btn success">Registrar pago</button>
+    </form>
+    {% endif %}
+  </div>
+  <div>
+    <div class="card">
+      <h2 style="margin-top:0">Compras</h2>
+      <table>
+        {% for c in compras %}
+        <tr><td><a href="{{ url_for('purchases.detalle', pid=c.id) }}">{{ c.number }}</a></td>
+          <td>{{ c.datetime|fecha }}</td><td class="num">{{ c.total|money }}</td>
+          <td>{{ c.status }}</td></tr>
+        {% else %}<tr><td class="empty">Sin compras.</td></tr>{% endfor %}
+      </table>
+    </div>
+    <div class="card">
+      <h2 style="margin-top:0">Cuenta corriente del proveedor</h2>
+      <div class="table-wrap" style="max-height:260px;overflow:auto"><table>
+        {% for m in movs %}
+        <tr><td class="small">{{ m.datetime|fecha }}</td><td class="small">{{ m.description }}</td>
+          <td class="num">{{ m.debit|money }}</td><td class="num">{{ m.credit|money }}</td></tr>
+        {% else %}<tr><td class="empty">Sin movimientos.</td></tr>{% endfor %}
+      </table></div>
+    </div>
+    <div class="card">
+      <h2 style="margin-top:0">Productos suministrados</h2>
+      <table>
+        {% for p in productos %}
+        <tr><td>{{ p.description }}</td><td class="mono small">{{ p.code }}</td>
+          <td class="num">{{ p.cost_price|money }}</td>
+          <td class="small">{{ p.last_purchase_date|fecha }}</td></tr>
+        {% else %}<tr><td class="empty">Sin productos vinculados.</td></tr>{% endfor %}
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}

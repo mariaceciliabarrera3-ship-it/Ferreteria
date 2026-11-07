@@ -1,0 +1,22 @@
+{% extends 'base.html' %}
+{% block title %}Nuevo proveedor{% endblock %}
+{% block content %}
+<h1>Nuevo proveedor</h1>
+<form method="post" class="card" style="max-width:720px">
+  <input type="hidden" name="_csrf" value="{{ csrf_token }}">
+  <label>Razón social / nombre * <input name="name" required></label>
+  <div class="form-row">
+    <label>CUIT <input name="cuit" placeholder="30-00000000-0"></label>
+    <label>Contacto <input name="contact"></label>
+  </div>
+  <div class="form-row">
+    <label>Teléfono <input name="phone"></label>
+    <label>Correo <input name="email" type="email"></label>
+  </div>
+  <label>Domicilio <input name="address"></label>
+  <label>Condiciones de pago <input name="payment_terms" placeholder="Ej.: 30 días fecha factura"></label>
+  <label>Observaciones <input name="notes"></label>
+  <div class="toolbar"><button class="btn primary">Guardar</button>
+    <a class="btn" href="{{ url_for('purchases.proveedores') }}">Cancelar</a></div>
+</form>
+{% endblock %}

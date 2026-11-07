@@ -1,0 +1,81 @@
+{% extends 'base.html' %}
+{% block title %}Nuevo producto{% endblock %}
+{% block content %}
+<h1>Nuevo producto</h1>
+<form method="post" class="card">
+  <input type="hidden" name="_csrf" value="{{ csrf_token }}">
+  <div class="form-row">
+    <label>Código interno * <input name="code" required placeholder="Ej.: CBL-2.5"></label>
+    <label>Código de barras <input name="barcode" placeholder="7790000000000"></label>
+  </div>
+  <label>Descripción * <input name="description" required placeholder="Cable unipolar 2,5 mm²"></label>
+  <div class="form-row-4">
+    <label>Marca <input name="brand"></label>
+    <label>Modelo <input name="model"></label>
+    <label>Categoría
+      <select name="category_id"><option value="">—</option>
+        {% for c in categories %}<option value="{{ c.id }}">{{ c.name }}</option>{% endfor %}
+      </select></label>
+    <label>Proveedor habitual
+      <select name="supplier_id"><option value="">—</option>
+        {% for s in suppliers %}<option value="{{ s.id }}">{{ s.name }}</option>{% endfor %}
+      </select></label>
+  </div>
+  <div class="form-row-4">
+    <label>Unidad base (stock) *
+      <select name="base_unit" required>
+        {% for u in units %}<option value="{{ u.name }}" {{ 'selected' if u.name=='unidad' }}>{{ u.name }}</option>{% endfor %}
+      </select></label>
+    <label>Unidad de venta por defecto
+      <select name="default_sale_unit">
+        {% for u in units %}<option value="{{ u.name }}" {{ 'selected' if u.name=='unidad' }}>{{ u.name }}</option>{% endfor %}
+      </select></label>
+    <label>Precio de compra <input name="cost_price" value="0" inputmode="decimal"></label>
+    <label>Precio de venta * <input name="sale_price" value="0" inputmode="decimal" required></label>
+  </div>
+  <div class="form-row-4">
+    <label>Precio mayorista <input name="wholesale_price" value="0" inputmode="decimal"></label>
+    <label>Precio especial <input name="special_price" value="0" inputmode="decimal"></label>
+    <label>Stock inicial <input name="stock_inicial" value="0" inputmode="decimal"></label>
+    <label>Stock mínimo <input name="stock_min" value="0" inputmode="decimal"></label>
+  </div>
+  <div class="form-row">
+    <label>Stock máximo <input name="stock_max" value="0" inputmode="decimal"></label>
+    <label>Ubicación física <input name="location" placeholder="Anaquel B2"></label>
+  </div>
+  <fieldset>
+    <legend>Conversiones de unidades (por producto — ej.: 1 rollo = 100 metros)</legend>
+    <div id="convs"></div>
+    <button type="button" class="btn sm" id="add-conv">+ Agregar conversión</button>
+    <p class="hint">La unidad base tiene factor 1 implícito. Ej.: si la base es <strong>metro</strong>,
+      en «rollo» ponga <strong>100</strong> (1 rollo = 100 metros).</p>
+  </fieldset>
+  <div class="form-row">
+    <label>Impuesto asociado (opcional)
+      <select name="tax_id"><option value="">— ninguno —</option></select></label>
+    <label>Observaciones <input name="notes"></label>
+  </div>
+  <div class="toolbar">
+    <button class="btn primary">Guardar producto</button>
+    <a class="btn" href="{{ url_for('products.lista') }}">Cancelar</a>
+  </div>
+</form>
+{% endblock %}
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', ()=>{
+  const box = document.getElementById('convs');
+  document.getElementById('add-conv').addEventListener('click', ()=>{
+    const row = document.createElement('div');
+    row.className = 'form-row';
+    // ARQ-01: nodos DOM en lugar de plantillas HTML interpoladas.
+    row.appendChild(el('label', null, document.createTextNode('Unidad '),
+      el('input', {name: 'conv_unit', placeholder: 'rollo / caja / bolsa'})));
+    row.appendChild(el('label', null,
+      document.createTextNode('Cuántas unidades base equivale '),
+      el('input', {name: 'conv_factor', placeholder: '100', inputmode: 'decimal'})));
+    box.appendChild(row);
+  });
+});
+</script>
+{% endblock %}
