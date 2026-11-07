@@ -1,0 +1,82 @@
+{% extends 'base.html' %}
+{% block title %}Caja{% endblock %}
+{% block content %}
+<h1>Caja</h1>
+{% if session %}
+<div class="grid grid-4">
+  <div class="kpi"><div class="label">Sesión abierta desde</div>
+    <div class="value" style="font-size:1.05rem">{{ session.opened_at|fecha }}</div>
+    <div class="sub">Abrida por #{{ session.user_open }}</div></div>
+  <div class="kpi"><div class="label">Saldo inicial</div>
+    <div class="value">{{ session.initial|money }}</div></div>
+  <div class="kpi good"><div class="label">Esperado en caja</div>
+    <div class="value">{{ expected|money }}</div>
+    <div class="sub">ingresos − egresos + inicial</div></div>
+  <div class="kpi"><div class="label">Movimientos</div>
+    <div class="value">{{ movs|length }}</div></div>
+</div>
+
+<div class="grid grid-2" style="margin-top:1rem">
+  <div class="card">
+    <h2 style="margin-top:0">Movimientos de la sesión</h2>
+    <div class="table-wrap" style="max-height:420px;overflow:auto"><table>
+      <thead><tr><th>Hora</th><th>Tipo</th><th>Concepto</th><th class="num">Importe</th><th>Usuario</th></tr></thead>
+      <tbody>
+      {% for m in movs %}
+      <tr><td class="small">{{ m.datetime|fecha }}</td>
+        <td><span class="badge {{ 'badge-ok' if m.type=='ingreso' else 'badge-err' }}">{{ m.type }}</span></td>
+        <td class="small">{{ m.concept }}</td>
+        <td class="num">{{ m.amount|money }}</td>
+        <td class="small">{{ m.username or '—' }}</td></tr>
+      {% else %}<tr><td colspan="5" class="empty">Sin movimientos.</td></tr>{% endfor %}
+      </tbody>
+    </table></div>
+  </div>
+  <div>
+    {% if 'caja.operar' in user_perms %}
+    <div class="card">
+      <h2 style="margin-top:0">Registrar ingreso / egreso</h2>
+      <form method="post" action="{{ url_for('admin.caja_movimiento') }}">
+        <input type="hidden" name="_csrf" value="{{ csrf_token }}">
+        <div class="form-row">
+          <label>Tipo <select name="type">
+            <option value="ingreso">Ingreso</option><option value="egreso">Egreso</option>
+          </select></label>
+          <label>Importe <input name="amount" required inputmode="decimal"></label>
+        </div>
+        <label>Concepto * <input name="concept" required placeholder="Ej.: retiro para depósito"></label>
+        <button class="btn primary">Registrar</button>
+      </form>
+    </div>
+    {% endif %}
+    {% if 'caja.cerrar' in user_perms %}
+    <div class="card">
+      <h2 style="margin-top:0">Cierre y arqueo</h2>
+      <form method="post" action="{{ url_for('admin.caja_cerrar') }}">
+        <input type="hidden" name="_csrf" value="{{ csrf_token }}">
+        <label>Efectivo contado <input name="counted" required inputmode="decimal" placeholder="0,00"></label>
+        <label>Notas <input name="notes"></label>
+        <p class="hint">Esperado: <strong>{{ expected|money }}</strong></p>
+        <button class="btn success">Cerrar caja y arquear</button>
+      </form>
+    </div>
+    {% endif %}
+  </div>
+</div>
+{% else %}
+<div class="card">
+  <p class="muted">No hay una sesión de caja abierta.</p>
+  {% if 'caja.operar' in user_perms %}
+  <form method="post" action="{{ url_for('admin.caja_abrir') }}" style="max-width:360px">
+    <input type="hidden" name="_csrf" value="{{ csrf_token }}">
+    <label>Saldo inicial de la caja <input name="initial" value="0" inputmode="decimal" required></label>
+    <button class="btn primary full">Abrir caja</button>
+  </form>
+  {% endif %}
+  <p style="margin-top:1rem"><a href="{{ url_for('admin.caja_historial') }}">Ver historial de cierres →</a></p>
+</div>
+{% endif %}
+{% if session %}
+<p><a href="{{ url_for('admin.caja_historial') }}">Historial de cierres →</a></p>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,32 @@
+{% extends 'base.html' %}
+{% block title %}Clientes{% endblock %}
+{% block content %}
+<h1>Clientes</h1>
+<div class="card">
+  <form class="toolbar" method="get">
+    <input name="q" value="{{ q }}" placeholder="Nombre o CUIT/DNI…" style="min-width:220px">
+    <button class="btn primary">Buscar</button>
+    <span class="spacer"></span>
+    {% if 'clientes.gestionar' in user_perms %}
+    <a class="btn success" href="{{ url_for('admin.cliente_nuevo') }}">+ Nuevo cliente</a>
+    {% endif %}
+  </form>
+</div>
+<div class="table-wrap">
+<table>
+  <thead><tr><th>Nombre</th><th>CUIT/DNI</th><th>Teléfono</th>
+    <th class="num">Saldo (debe)</th><th></th></tr></thead>
+  <tbody>
+  {% for c in clientes %}
+  <tr>
+    <td><a href="{{ url_for('admin.cliente_detalle', cid=c.id) }}">{{ c.name }}</a></td>
+    <td>{{ c.doc or '—' }}</td><td>{{ c.phone or '—' }}</td>
+    <td class="num {{ 'bold' if saldos.get(c.id,0) > 0 }}">
+      <span class="badge {{ 'badge-err' if saldos.get(c.id,0) > 0 else 'badge-mut' }}">{{ saldos.get(c.id,0)|money }}</span></td>
+    <td><a class="btn sm" href="{{ url_for('admin.cliente_detalle', cid=c.id) }}">Cuenta</a></td>
+  </tr>
+  {% else %}<tr><td colspan="5" class="empty">Sin clientes.</td></tr>{% endfor %}
+  </tbody>
+</table>
+</div>
+{% endblock %}

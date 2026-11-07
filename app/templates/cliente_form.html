@@ -1,0 +1,21 @@
+{% extends 'base.html' %}
+{% block title %}Nuevo cliente{% endblock %}
+{% block content %}
+<h1>Nuevo cliente</h1>
+<form method="post" class="card" style="max-width:720px">
+  <input type="hidden" name="_csrf" value="{{ csrf_token }}">
+  <label>Nombre / Razón social * <input name="name" required></label>
+  <div class="form-row">
+    <label>CUIT / DNI <input name="doc" placeholder="20-00000000-0"></label>
+    <label>Teléfono <input name="phone"></label>
+  </div>
+  <div class="form-row">
+    <label>Correo <input name="email" type="email"></label>
+    <label>Límite de crédito (0 = sin límite) <input name="credit_limit" value="0" inputmode="decimal"></label>
+  </div>
+  <label>Domicilio <input name="address"></label>
+  <label>Observaciones <input name="notes"></label>
+  <div class="toolbar"><button class="btn primary">Guardar</button>
+    <a class="btn" href="{{ url_for('admin.clientes') }}">Cancelar</a></div>
+</form>
+{% endblock %}

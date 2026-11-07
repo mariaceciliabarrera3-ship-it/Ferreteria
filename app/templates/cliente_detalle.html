@@ -1,0 +1,87 @@
+{% extends 'base.html' %}
+{% block title %}{{ c.name }}{% endblock %}
+{% block content %}
+<h1>{{ c.name }}
+  {% if excede %}<span class="badge badge-err">SUPERA EL LÍMITE DE CRÉDITO</span>{% endif %}
+</h1>
+<div class="grid grid-3">
+  <div class="kpi"><div class="label">Saldo de cuenta corriente</div>
+    <div class="value {{ 'err' if saldo > 0 }}">{{ saldo|money }}</div>
+    <div class="sub">{% if limit > 0 %}límite: {{ limit|money }}{% else %}sin límite de crédito{% endif %}</div></div>
+  <div class="kpi"><div class="label">CUIT/DNI</div>
+    <div class="value" style="font-size:1.1rem">{{ c.doc or '—' }}</div></div>
+  <div class="kpi"><div class="label">Cliente desde</div>
+    <div class="value" style="font-size:1.1rem">{{ c.created_at|fecha }}</div></div>
+</div>
+<div class="grid grid-2" style="margin-top:1rem">
+  <div class="card">
+    <h2 style="margin-top:0">Datos</h2>
+    <form method="post">
+      <input type="hidden" name="_csrf" value="{{ csrf_token }}">
+      <div class="form-row"><label>Nombre <input name="name" value="{{ c.name }}"></label>
+        <label>CUIT/DNI <input name="doc" value="{{ c.doc }}"></label></div>
+      <div class="form-row"><label>Teléfono <input name="phone" value="{{ c.phone }}"></label>
+        <label>Correo <input name="email" value="{{ c.email }}"></label></div>
+      <label>Domicilio <input name="address" value="{{ c.address }}"></label>
+      <label>Límite de crédito <input name="credit_limit" value="{{ c.credit_limit }}"></label>
+      <label>Observaciones <input name="notes" value="{{ c.notes }}"></label>
+      {% if 'clientes.gestionar' in user_perms %}
+      <button class="btn primary" style="margin-top:.6rem">Guardar cambios</button>
+      {% endif %}
+    </form>
+    {% if 'cuentas.consultar' in user_perms %}
+    <h3>Registrar cobro</h3>
+    <form method="post">
+      <input type="hidden" name="_csrf" value="{{ csrf_token }}">
+      <input type="hidden" name="action" value="cobro">
+      <div class="form-row">
+        <label>Importe <input name="amount" required inputmode="decimal" placeholder="0,00"></label>
+        <label>Medio <select name="method">
+          <option value="efectivo">Efectivo</option>
+          <option value="transferencia">Transferencia (queda pendiente de verificación)</option>
+          <option value="debito">Débito</option>
+          <option value="credito">Crédito</option>
+        </select></label>
+      </div>
+      <label>Notas <input name="notes"></label>
+      <button class="btn success">Registrar cobro</button>
+    </form>
+    {% endif %}
+  </div>
+  <div>
+    <div class="card">
+      <h2 style="margin-top:0">Estado de cuenta</h2>
+      <div class="table-wrap" style="max-height:300px;overflow:auto"><table>
+        <thead><tr><th>Fecha</th><th>Movimiento</th><th class="num">Debe</th><th class="num">Haber</th></tr></thead>
+        <tbody>
+        {% for m in movs %}
+        <tr><td class="small">{{ m.datetime|fecha }}</td><td class="small">{{ m.description }}</td>
+          <td class="num">{{ m.debit|money if m.debit else '' }}</td>
+          <td class="num">{{ m.credit|money if m.credit else '' }}</td></tr>
+        {% else %}<tr><td colspan="4" class="empty">Sin movimientos.</td></tr>{% endfor %}
+        </tbody>
+      </table></div>
+      <p class="bold right">Saldo actual: {{ saldo|money }}</p>
+    </div>
+    <div class="card">
+      <h2 style="margin-top:0">Ventas</h2>
+      <table>
+        {% for v in ventas %}
+        <tr><td><a href="{{ url_for('pos.venta_detalle', sale_id=v.id) }}">{{ v.number }}</a></td>
+          <td>{{ v.datetime|fecha }}</td><td class="num">{{ v.total|money }}</td>
+          <td><span class="badge badge-info">{{ v.payment_status }}</span></td></tr>
+        {% else %}<tr><td class="empty">Sin ventas.</td></tr>{% endfor %}
+      </table>
+    </div>
+    <div class="card">
+      <h2 style="margin-top:0">Cobros</h2>
+      <table>
+        {% for p in pagos %}
+        <tr><td>{{ p.datetime|fecha }}</td><td>{{ p.method }}</td>
+          <td class="num">{{ p.amount|money }}</td></tr>
+        {% else %}<tr><td class="empty">Sin cobros.</td></tr>{% endfor %}
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}

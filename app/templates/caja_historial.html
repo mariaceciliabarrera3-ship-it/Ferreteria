@@ -1,0 +1,29 @@
+{% extends 'base.html' %}
+{% block title %}Historial de caja{% endblock %}
+{% block content %}
+<h1>Historial de cierres de caja</h1>
+<div class="table-wrap">
+<table>
+  <thead><tr><th>#</th><th>Apertura</th><th>Usuario</th><th class="num">Inicial</th>
+    <th class="num">Esperado</th><th class="num">Contado</th><th class="num">Diferencia</th>
+    <th>Cierre</th><th>Estado</th></tr></thead>
+  <tbody>
+  {% for s in sesiones %}
+  <tr>
+    <td>{{ s.id }}</td>
+    <td class="small">{{ s.opened_at|fecha }}</td>
+    <td>{{ s.user_open_name or '—' }}</td>
+    <td class="num">{{ s.initial|money }}</td>
+    <td class="num">{{ s.expected|money if s.expected is not none else '—' }}</td>
+    <td class="num">{{ s.counted|money if s.counted is not none else '—' }}</td>
+    <td class="num {{ 'bold' if s.diff and s.diff != 0 }}">
+      <span class="badge {{ 'badge-ok' if s.diff == 0 else ('badge-warn' if s.diff else 'badge-mut') }}">
+        {{ s.diff|money if s.diff is not none else '—' }}</span></td>
+    <td class="small">{{ s.closed_at|fecha if s.closed_at else '—' }}</td>
+    <td><span class="badge {{ 'badge-ok' if s.status=='cerrada' else 'badge-warn' }}">{{ s.status }}</span></td>
+  </tr>
+  {% else %}<tr><td colspan="9" class="empty">Sin sesiones.</td></tr>{% endfor %}
+  </tbody>
+</table>
+</div>
+{% endblock %}
