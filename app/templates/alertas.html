@@ -1,0 +1,52 @@
+{% extends 'base.html' %}
+{% block title %}Alertas de stock{% endblock %}
+{% block content %}
+<h1>Alertas de stock</h1>
+<div class="grid grid-2">
+  <div class="card">
+    <h2 style="margin-top:0">Por debajo del mínimo ({{ bajos|length }})</h2>
+    <div class="table-wrap"><table>
+      <thead><tr><th>Producto</th><th class="num">Stock</th><th class="num">Mínimo</th><th></th></tr></thead>
+      <tbody>
+      {% for p in bajos %}
+      <tr><td>{{ p.description }}</td>
+        <td class="num"><span class="badge badge-err">{{ p.stock|qty }}</span></td>
+        <td class="num">{{ p.stock_min|qty }}</td>
+        <td><a class="btn sm" href="{{ url_for('products.detalle', pid=p.id) }}">Ver</a></td></tr>
+      {% else %}<tr><td colspan="4" class="empty">✅ Ningún producto bajo el mínimo.</td></tr>
+      {% endfor %}
+      </tbody>
+    </table></div>
+  </div>
+  <div>
+    <div class="card">
+      <h2 style="margin-top:0">Sin existencias ({{ sin|length }})</h2>
+      <table>
+        {% for p in sin %}<tr><td>{{ p.description }}</td>
+          <td class="num"><span class="badge badge-err">0 {{ p.base_unit }}</span></td></tr>
+        {% else %}<tr><td class="empty">✅ Todos con stock.</td></tr>{% endfor %}
+      </table>
+    </div>
+    <div class="card">
+      <h2 style="margin-top:0">Más rotación (30 días)</h2>
+      <table>
+        <thead><tr><th>Producto</th><th class="num">Vendidos</th></tr></thead>
+        <tbody>
+        {% for r in rotacion %}
+        <tr><td>{{ r.description }}</td><td class="num">{{ r.vendidos|qty }} {{ r.base_unit }}</td></tr>
+        {% else %}<tr><td colspan="2" class="empty">Sin ventas en 30 días.</td></tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    <div class="card">
+      <h2 style="margin-top:0">Sin movimiento en 90 días ({{ sin_mov|length }})</h2>
+      <table>
+        {% for p in sin_mov[:12] %}<tr><td class="small">{{ p.description }}</td>
+          <td class="num small">{{ p.stock|qty }} {{ p.base_unit }}</td></tr>
+        {% else %}<tr><td class="empty">Todos tuvieron movimiento.</td></tr>{% endfor %}
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}

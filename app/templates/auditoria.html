@@ -1,0 +1,33 @@
+{% extends 'base.html' %}
+{% block title %}Auditoría{% endblock %}
+{% block content %}
+<h1>Bitácora de auditoría</h1>
+<div class="card">
+  <form class="toolbar" method="get">
+    <input name="q" value="{{ q }}" placeholder="Buscar en la bitácora…" style="min-width:230px">
+    <select name="entidad">
+      <option value="">Todas las entidades</option>
+      {% for e in entidades %}<option value="{{ e }}" {{ 'selected' if entidad==e }}>{{ e }}</option>{% endfor %}
+    </select>
+    <button class="btn primary">Filtrar</button>
+  </form>
+</div>
+<div class="table-wrap">
+<table>
+  <thead><tr><th>Fecha</th><th>Usuario</th><th>Acción</th><th>Entidad</th>
+    <th>ID</th><th>Detalle</th></tr></thead>
+  <tbody>
+  {% for r in rows %}
+  <tr>
+    <td class="small">{{ r.datetime|fecha }}</td>
+    <td class="small">{{ r.username }}</td>
+    <td><span class="badge badge-info">{{ r.action }}</span></td>
+    <td class="small">{{ r.entity }}</td>
+    <td class="small">{{ r.entity_id or '—' }}</td>
+    <td class="small mono" style="max-width:340px;overflow:hidden;text-overflow:ellipsis">{{ r.detail }}</td>
+  </tr>
+  {% else %}<tr><td colspan="6" class="empty">Sin registros.</td></tr>{% endfor %}
+  </tbody>
+</table>
+</div>
+{% endblock %}
