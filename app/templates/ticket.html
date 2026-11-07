@@ -1,0 +1,48 @@
+<!doctype html><html lang="es"><head><meta charset="utf-8">
+<title>Comprobante {{ sale.number }}</title>
+<link rel="stylesheet" href="{{ url_for('static', filename='app.css') }}">
+<style>.topbar,.sidebar,.banner{display:none}</style></head>
+<body>
+<div class="ticket">
+  <h3>{{ settings.get('business_name','Ferretería') }}</h3>
+  <div style="text-align:center">
+    {{ settings.get('business_address','') }}<br>
+    {{ settings.get('business_cuit','') }} {{ settings.get('business_iva','') }}
+  </div>
+  <div class="sep"></div>
+  <div class="line"><span>COMPROBANTE INTERNO</span><span>{{ sale.number }}</span></div>
+  <div class="line"><span>Fecha</span><span>{{ sale.datetime|fecha }}</span></div>
+  <div class="line"><span>Vendedor</span><span>{{ sale.username }}</span></div>
+  <div class="line"><span>Cliente</span><span>{{ sale.customer_name or 'Consumidor final' }}</span></div>
+  <div class="sep"></div>
+  {% for it in items %}
+  <div class="line"><span>{{ it.qty|qty }} {{ it.unit }} × {{ it.description }}</span></div>
+  <div class="line"><span></span><span>{{ it.line_total|money }}</span></div>
+  {% endfor %}
+  <div class="sep"></div>
+  <div class="line"><span>Subtotal</span><span>{{ sale.subtotal|money }}</span></div>
+  {% if sale.discount %}<div class="line"><span>Descuentos</span><span>-{{ sale.discount|money }}</span></div>{% endif %}
+  {% if sale.tax_total %}<div class="line"><span>Impuestos</span><span>{{ sale.tax_total|money }}</span></div>{% endif %}
+  <div class="line" style="font-weight:800;font-size:1rem"><span>TOTAL</span><span>{{ sale.total|money }}</span></div>
+  {% for p in payments %}
+  <div class="line"><span>{{ p.method }}</span><span>{{ p.amount|money }}</span></div>
+  {% if p.method=='transferencia' and p.transfer_ref %}
+  <div class="line"><span>Ref. transferencia</span><span>{{ p.transfer_ref }}</span></div>
+  <div class="line"><span>Estado</span><span>{{ p.transfer_status }}</span></div>
+  {% endif %}
+  {% endfor %}
+  {% if sale.status=='anulada' %}
+  <div class="sep"></div><div style="text-align:center;font-weight:700">ANULADA — {{ sale.void_reason }}</div>
+  {% endif %}
+  <div class="sep"></div>
+  <div style="text-align:center">{{ settings.get('ticket_footer','Gracias por su compra') }}</div>
+  <div class="sep"></div>
+  <div style="text-align:center;font-size:.7rem">Comprobante interno de gestión — NO es factura fiscal.<br>
+  La facturación electrónica ante ARCA se habilita por configuración del comercio.</div>
+</div>
+<div style="text-align:center;padding:1rem">
+  <button class="btn primary" onclick="window.print()">🖨 Imprimir</button>
+  <a class="btn" href="/ventas/{{ sale.id }}">Volver a la venta</a>
+  <a class="btn" href="/pos">Nueva venta</a>
+</div>
+</body></html>

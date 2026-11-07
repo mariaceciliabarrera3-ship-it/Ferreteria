@@ -1,0 +1,246 @@
+{% extends 'base.html' %}
+{% block title %}Informes{% endblock %}
+{% block content %}
+<h1>Informes</h1>
+<div class="card">
+  <form class="toolbar" method="get">
+    <input type="hidden" name="tab" value="{{ tab }}">
+    <label class="small">Desde <input type="date" name="desde" value="{{ desde }}"></label>
+    <label class="small">Hasta <input type="date" name="hasta" value="{{ hasta }}"></label>
+    <button class="btn primary">Aplicar</button>
+    <span class="spacer"></span>
+    <a class="btn" href="{{ url_for('reports.exportar', tipo=tab if tab in ('ventas','ganancias','cuentas') else 'stock', desde=desde, hasta=hasta) }}">⬇ CSV</a>
+    <a class="btn" href="{{ url_for('reports.excel', desde=desde, hasta=hasta) }}">⬇ Excel</a>
+  </form>
+  <div class="tabs" style="margin:0;border:none">
+    <a href="?tab=ventas&desde={{ desde }}&hasta={{ hasta }}" class="{{ 'active' if tab=='ventas' }}">Ventas</a>
+    <a href="?tab=productos&desde={{ desde }}&hasta={{ hasta }}" class="{{ 'active' if tab=='productos' }}">Productos y stock</a>
+    {% if 'reportes.ganancias' in user_perms %}
+    <a href="?tab=ganancias&desde={{ desde }}&hasta={{ hasta }}" class="{{ 'active' if tab=='ganancias' }}">Rentabilidad</a>
+    {% endif %}
+    {% if 'cuentas.consultar' in user_perms or 'reportes.ganancias' in user_perms %}
+    <a href="?tab=cuentas&desde={{ desde }}&hasta={{ hasta }}" class="{{ 'active' if tab=='cuentas' }}">Cuentas</a>
+    {% endif %}
+    <a href="?tab=caja&desde={{ desde }}&hasta={{ hasta }}" class="{{ 'active' if tab=='caja' }}">Caja</a>
+  </div>
+</div>
+
+{% if tab == 'ventas' %}
+<div class="grid grid-4">
+  <div class="kpi"><div class="label">Operaciones</div><div class="value">{{ totales.n }}</div></div>
+  <div class="kpi"><div class="label">Facturación</div><div class="value">{{ totales.total|money }}</div></div>
+  <div class="kpi"><div class="label">Impuestos incluidos</div><div class="value">{{ totales.impuestos|money }}</div></div>
+  <div class="kpi"><div class="label">Descuentos</div><div class="value">{{ totales.desc|money }}</div></div>
+</div>
+<div class="grid grid-2" style="margin-top:1rem">
+  <div class="card">
+    <h2 style="margin-top:0">Ventas por día</h2>
+    <div class="hbars">
+      {% for d in por_dia %}
+      <div class="hbar-row">
+        <span>{{ d.dia|fecha }}</span>
+        <div class="hbar-track"><div class="hbar-fill" style="width:{{ (d.total / max_dia * 100)|round(1) if max_dia else 0 }}%"></div></div>
+        <span class="num">{{ d.total|money }}</span>
+      </div>
+      {% else %}<p class="empty">Sin ventas en el período.</p>{% endfor %}
+    </div>
+  </div>
+  <div class="card">
+    <h2 style="margin-top:0">Por medio de pago</h2>
+    <table>
+      <thead><tr><th>Medio</th><th class="num">Operaciones</th><th class="num">Importe</th></tr></thead>
+      <tbody>
+      {% for m in por_medio %}
+      <tr><td><span class="badge badge-info">{{ m.method }}</span></td>
+        <td class="num">{{ m.n }}</td><td class="num bold">{{ m.total|money }}</td></tr>
+      {% else %}<tr><td colspan="3" class="empty">Sin datos.</td></tr>{% endfor %}
+      </tbody>
+    </table>
+    <h3>Por vendedor</h3>
+    <table>
+      <thead><tr><th>Vendedor</th><th class="num">Op.</th><th class="num">Total</th></tr></thead>
+      <tbody>
+      {% for v in por_vendedor %}
+      <tr><td>{{ v.username }}</td><td class="num">{{ v.operaciones }}</td>
+        <td class="num">{{ v.total|money }}</td></tr>
+      {% else %}<tr><td colspan="3" class="empty">Sin datos.</td></tr>{% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+{% elif tab == 'productos' %}
+<div class="grid grid-3">
+  <div class="kpi"><div class="label">Stock a costo</div><div class="value">{{ valor.cost|money }}</div></div>
+  <div class="kpi"><div class="label">Stock a precio venta</div><div class="value">{{ valor.retail|money }}</div></div>
+  <div class="kpi"><div class="label">Ítems</div><div class="value">{{ valor.items }}</div></div>
+</div>
+<div class="grid grid-2" style="margin-top:1rem">
+  <div class="card">
+    <h2 style="margin-top:0">Más vendidos</h2>
+    <table>
+      <thead><tr><th>Producto</th><th class="num">Unidades</th><th class="num">Importe</th></tr></thead>
+      <tbody>
+      {% for t in top %}
+      <tr><td>{{ t.description }}</td><td class="num">{{ t.qty|qty }}</td>
+        <td class="num">{{ t.total|money }}</td></tr>
+      {% else %}<tr><td colspan="3" class="empty">Sin ventas.</td></tr>{% endfor %}
+      </tbody>
+    </table>
+  </div>
+  <div class="card">
+    <h2 style="margin-top:0">Menos vendidos</h2>
+    <table>
+      <thead><tr><th>Producto</th><th class="num">Unidades</th></tr></thead>
+      <tbody>
+      {% for t in menos %}
+      <tr><td>{{ t.description }}</td><td class="num">{{ t.qty|qty }}</td></tr>
+      {% else %}<tr><td colspan="2" class="empty">Sin ventas.</td></tr>{% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+<div class="card">
+  <h2 style="margin-top:0">Stock valorizado</h2>
+  <div class="table-wrap" style="max-height:420px;overflow:auto"><table>
+    <thead><tr><th>Código</th><th>Producto</th><th class="num">Stock</th>
+      <th class="num">Costo prom.</th><th class="num">Valor a costo</th>
+      <th class="num">Valor a venta</th></tr></thead>
+    <tbody>
+    {% for p in stock %}
+    <tr><td class="mono small">{{ p.code }}</td><td>{{ p.description }}</td>
+      <td class="num">{{ p.stock|qty }} {{ p.base_unit }}</td>
+      <td class="num">{{ p.avg_cost|money }}</td>
+      <td class="num">{{ p.v_cost|money }}</td>
+      <td class="num">{{ p.v_venta|money }}</td></tr>
+    {% endfor %}
+    </tbody>
+  </table></div>
+</div>
+
+{% elif tab == 'ganancias' %}
+<div class="grid grid-5">
+  <div class="kpi"><div class="label">Ventas</div><div class="value">{{ profit.sales|money }}</div></div>
+  <div class="kpi"><div class="label">Costo mercadería</div><div class="value">{{ profit.cost|money }}</div></div>
+  <div class="kpi good"><div class="label">Ganancia bruta</div><div class="value">{{ profit.profit|money }}</div></div>
+  <div class="kpi"><div class="label">Margen</div><div class="value">{{ profit.margin }}%</div></div>
+  <div class="kpi"><div class="label">Descuentos</div><div class="value">{{ profit.discounts|money }}</div></div>
+</div>
+<div class="grid grid-3" style="margin-top:1rem">
+  <div class="kpi"><div class="label">Compras del período</div><div class="value">{{ compras.s|money }}</div></div>
+  <div class="kpi"><div class="label">Gastos del período</div><div class="value">{{ gastos.s|money }}</div></div>
+  <div class="kpi"><div class="label">Operaciones</div><div class="value">{{ profit.count }}</div></div>
+</div>
+<div class="grid grid-2" style="margin-top:1rem">
+  <div class="card">
+    <h2 style="margin-top:0">Rentabilidad por categoría</h2>
+    <table>
+      <thead><tr><th>Categoría</th><th class="num">Ventas</th><th class="num">Costo</th>
+        <th class="num">Ganancia</th><th class="num">Margen</th></tr></thead>
+      <tbody>
+      {% for c in por_categoria %}
+      {% set g = c.ventas - c.costo %}
+      <tr><td>{{ c.cat }}</td><td class="num">{{ c.ventas|money }}</td>
+        <td class="num">{{ c.costo|money }}</td><td class="num bold">{{ g|money }}</td>
+        <td class="num">{{ ((g / c.ventas * 100)|round(1)) if c.ventas else 0 }}%</td></tr>
+      {% else %}<tr><td colspan="5" class="empty">Sin ventas.</td></tr>{% endfor %}
+      </tbody>
+    </table>
+  </div>
+  <div class="card">
+    <h2 style="margin-top:0">Margen por producto (top 30)</h2>
+    <div class="table-wrap" style="max-height:360px;overflow:auto"><table>
+      <thead><tr><th>Producto</th><th class="num">Costo</th><th class="num">Venta</th>
+        <th class="num">Margen</th></tr></thead>
+      <tbody>
+      {% for m in margen_producto %}
+      <tr><td>{{ m.description }}</td><td class="num">{{ m.cost_price|money }}</td>
+        <td class="num">{{ m.sale_price|money }}</td>
+        <td class="num {{ 'bold' if m.margen < 15 }}">{{ m.margen }}%</td></tr>
+      {% endfor %}
+      </tbody>
+    </table></div>
+  </div>
+</div>
+
+{% elif tab == 'cuentas' %}
+<div class="grid grid-3">
+  <div class="kpi err"><div class="label">Por cobrar a clientes</div>
+    <div class="value">{{ cc_total|money }}</div></div>
+  <div class="kpi warn"><div class="label">Por pagar a proveedores</div>
+    <div class="value">{{ pp_total|money }}</div></div>
+  <div class="kpi"><div class="label">Transferencias por verificar</div>
+    <div class="value">{{ trans_pend|length }}</div></div>
+</div>
+<div class="grid grid-2" style="margin-top:1rem">
+  <div class="card">
+    <h2 style="margin-top:0">Cuentas por cobrar (clientes)</h2>
+    <table>
+      <thead><tr><th>Cliente</th><th class="num">Límite</th><th class="num">Saldo</th></tr></thead>
+      <tbody>
+      {% for r in cc %}
+      <tr><td><a href="{{ url_for('admin.cliente_detalle', cid=r.id) }}">{{ r.name }}</a></td>
+        <td class="num muted">{{ r.credit_limit|money if r.credit_limit else '—' }}</td>
+        <td class="num bold">{{ r.saldo|money }}</td></tr>
+      {% else %}<tr><td colspan="3" class="empty">Sin deudas de clientes.</td></tr>{% endfor %}
+      </tbody>
+    </table>
+  </div>
+  <div class="card">
+    <h2 style="margin-top:0">Cuentas por pagar (proveedores)</h2>
+    <table>
+      <thead><tr><th>Proveedor</th><th class="num">Saldo</th></tr></thead>
+      <tbody>
+      {% for r in pp %}
+      <tr><td><a href="{{ url_for('purchases.proveedor_detalle', sid=r.id) }}">{{ r.name }}</a></td>
+        <td class="num bold">{{ r.saldo|money }}</td></tr>
+      {% else %}<tr><td colspan="2" class="empty">Sin deudas con proveedores.</td></tr>{% endfor %}
+      </tbody>
+    </table>
+    <h3>Transferencias pendientes de verificación</h3>
+    <table>
+      {% for t in trans_pend %}
+      <tr><td class="small">{{ t.created_at|fecha }}</td>
+        <td>{{ t.sale_number or 'Cobro cliente' }}</td>
+        <td class="num">{{ t.amount|money }}</td>
+        <td><span class="badge badge-warn">{{ t.status }}</span></td></tr>
+      {% else %}<tr><td class="empty">Ninguna pendiente.</td></tr>{% endfor %}
+    </table>
+  </div>
+</div>
+
+{% elif tab == 'caja' %}
+<div class="card">
+  <h2 style="margin-top:0">Flujo de caja por día</h2>
+  <div class="table-wrap"><table>
+    <thead><tr><th>Día</th><th class="num">Ingresos</th><th class="num">Egresos</th>
+      <th class="num">Neto</th></tr></thead>
+    <tbody>
+    {% for f in flujo %}
+    <tr><td>{{ f.dia|fecha }}</td><td class="num">{{ f.ingresos|money }}</td>
+      <td class="num">{{ f.egresos|money }}</td>
+      <td class="num bold">{{ (f.ingresos - f.egresos)|money }}</td></tr>
+    {% else %}<tr><td colspan="4" class="empty">Sin movimientos.</td></tr>{% endfor %}
+    </tbody>
+  </table></div>
+  <p class="muted small">Compras en efectivo: {{ compras.s|money }} ({{ compras.n }}) ·
+    Gastos: {{ gastos.s|money }}</p>
+</div>
+<div class="card">
+  <h2 style="margin-top:0">Sesiones de caja</h2>
+  <table>
+    <thead><tr><th>#</th><th>Apertura</th><th class="num">Inicial</th>
+      <th class="num">Esperado</th><th class="num">Contado</th><th class="num">Diferencia</th></tr></thead>
+    <tbody>
+    {% for s in sesiones %}
+    <tr><td>{{ s.id }}</td><td class="small">{{ s.opened_at|fecha }}</td>
+      <td class="num">{{ s.initial|money }}</td>
+      <td class="num">{{ s.expected|money if s.expected is not none else '—' }}</td>
+      <td class="num">{{ s.counted|money if s.counted is not none else '—' }}</td>
+      <td class="num">{{ s.diff|money if s.diff is not none else '—' }}</td></tr>
+    {% else %}<tr><td colspan="6" class="empty">Sin sesiones en el período.</td></tr>{% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endif %}
+{% endblock %}

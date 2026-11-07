@@ -1,0 +1,149 @@
+{% extends 'base.html' %}
+{% block title %}Venta {{ sale.number }}{% endblock %}
+{% block content %}
+<h1>Venta {{ sale.number }}
+  <span class="badge {{ 'badge-err' if sale.status=='anulada' else 'badge-ok' }}">{{ sale.status }}</span>
+  <span class="badge badge-info">{{ sale.payment_status }}</span>
+  {% if request.args.get('nueva') %}<span class="badge badge-ok">¡Venta registrada!{% endif %}
+</h1>
+{% if request.args.get('nueva') %}
+<div class="flash flash-ok">✅ Venta registrada correctamente.
+  <a href="{{ url_for('pos.venta_ticket', sale_id=sale.id) }}" class="bold">Ver / imprimir comprobante →</a>
+  <a href="{{ url_for('pos.pos') }}" class="bold">Nueva venta →</a></div>
+{% endif %}
+<div class="grid grid-2">
+  <div class="card">
+    <h2 style="margin-top:0">Renglones</h2>
+    <div class="table-wrap"><table>
+      <thead><tr><th>Producto</th><th>Unidad</th><th class="num">Cant.</th>
+        <th class="num">Precio</th><th class="num">Desc.</th><th class="num">Imp.</th>
+        <th class="num">Total</th></tr></thead>
+      <tbody>
+      {% for it in items %}
+      <tr>
+        <td>{{ it.description }}
+          {% set rets = ret_items.get(it.id, []) %}
+          {% if rets %}<br><span class="badge badge-warn">devuelto:
+            {% for r in rets %}{{ r.qty|qty }} {% endfor %}</span>{% endif %}
+        </td>
+        <td>{{ it.unit }}</td>
+        <td class="num">{{ it.qty|qty }}</td>
+        <td class="num">{{ it.unit_price|money }}</td>
+        <td class="num">{{ it.discount|money }}</td>
+        <td class="num">{{ it.tax_amount|money }}</td>
+        <td class="num bold">{{ it.line_total|money }}</td>
+      </tr>
+      {% endfor %}
+      </tbody>
+    </table></div>
+    <h3>Pagos</h3>
+    <table>
+      {% for p in payments %}
+      <tr><td>{{ p.method }}</td><td class="num">{{ p.amount|money }}</td>
+        <td>{% if p.method=='transferencia' %}
+          <span class="badge {{ 'badge-ok' if p.transfer_status=='verificada' else ('badge-err' if p.transfer_status=='rechazada' else 'badge-warn') }}">
+            {{ p.transfer_status }}</span>
+          {% if p.transfer_ref %}<span class="small mono"> ref: {{ p.transfer_ref }}</span>{% endif %}
+        {% endif %}</td></tr>
+      {% endfor %}
+    </table>
+  </div>
+  <div>
+    <div class="card">
+      <h2 style="margin-top:0">Resumen</h2>
+      <table>
+        <tr><td>Fecha</td><td class="num">{{ sale.datetime|fecha }}</td></tr>
+        <tr><td>Vendedor</td><td class="num">{{ sale.username }}</td></tr>
+        <tr><td>Cliente</td><td class="num">{{ sale.customer_name or 'Consumidor final' }}</td></tr>
+        <tr><td>Subtotal</td><td class="num">{{ sale.subtotal|money }}</td></tr>
+        <tr><td>Descuentos</td><td class="num">-{{ sale.discount|money }}</td></tr>
+        <tr><td>Impuestos</td><td class="num">{{ sale.tax_total|money }}</td></tr>
+        <tr><td class="bold">TOTAL</td><td class="num bold">{{ sale.total|money }}</td></tr>
+        <tr><td class="muted">Costo mercadería</td><td class="num muted">{{ sale.cost_total|money }}</td></tr>
+        {% if 'reportes.ganancias' in user_perms %}
+        <tr><td class="muted">Ganancia estimada</td>
+          <td class="num muted">{{ (sale.total - sale.cost_total)|money }}</td></tr>
+        {% endif %}
+      </table>
+      {% if sale.status == 'anulada' %}
+      <p class="flash flash-error">Anulada: {{ sale.void_reason }}</p>
+      {% endif %}
+      {% if sale.notes %}<p class="muted small">Notas: {{ sale.notes }}</p>{% endif %}
+      <div class="toolbar" style="margin-top:.8rem">
+        <a class="btn" href="{{ url_for('pos.venta_ticket', sale_id=sale.id) }}">🖨 Comprobante</a>
+        {% if sale.status == 'activa' and 'ventas.anular' in user_perms %}
+        <button class="btn danger" onclick="document.getElementById('void-box').classList.toggle('hidden')">Anular venta</button>
+        <button class="btn" onclick="document.getElementById('ret-box').classList.toggle('hidden')">Devolución</button>
+        {% endif %}
+      </div>
+      {% if sale.status == 'activa' and 'ventas.anular' in user_perms %}
+      <div id="void-box" class="hidden" style="margin-top:.6rem">
+        <form method="post" action="{{ url_for('pos.venta_anular', sale_id=sale.id) }}">
+          <input type="hidden" name="_csrf" value="{{ csrf_token }}">
+          <label>Motivo de anulación (obligatorio)
+            <input name="reason" required placeholder="Ej.: error de cobro">
+          </label>
+          <button class="btn danger">Confirmar anulación</button>
+        </form>
+      </div>
+      <div id="ret-box" class="hidden" style="margin-top:.6rem">
+        <h3>Devolución de renglones</h3>
+        {% for it in items %}
+        <div class="form-row" style="align-items:end">
+          <label>{{ it.description }} — máx. devoluble:
+            {{ it.qty|qty }} {{ it.unit }}
+            <input type="number" step="0.01" min="0" max="{{ it.qty }}" value="0"
+                   data-ret-item="{{ it.id }}" class="ret-qty">
+          </label>
+        </div>
+        {% endfor %}
+        <div class="form-row">
+          <label>Motivo <input id="ret-reason" placeholder="Motivo de la devolución"></label>
+          <label>Reembolso en
+            <select id="ret-method">
+              <option value="efectivo">Efectivo (sale de caja)</option>
+              <option value="cuenta_corriente">A cuenta corriente del cliente</option>
+              <option value="transferencia">Transferencia (registro, sin ejecución bancaria)</option>
+            </select>
+          </label>
+        </div>
+        <button class="btn primary" id="btn-return">Registrar devolución</button>
+      </div>
+      {% endif %}
+    </div>
+    {% if returns %}
+    <div class="card">
+      <h2 style="margin-top:0">Devoluciones registradas</h2>
+      {% for r in returns %}
+      <p><strong>{{ r.number }}</strong> · {{ r.datetime|fecha }} · {{ r.total|money }}
+        · <span class="badge badge-info">{{ r.refund_method }}</span>
+        <br><span class="muted small">{{ r.reason }}</span></p>
+      {% endfor %}
+    </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', ()=>{
+  const btn = document.getElementById('btn-return');
+  if(!btn) return;
+  btn.addEventListener('click', async ()=>{
+    const lines = [];
+    document.querySelectorAll('.ret-qty').forEach(el=>{
+      const qty = Number(el.value.replace(',','.'));
+      if(qty > 0) lines.push({sale_item_id: Number(el.dataset.retItem), qty});
+    });
+    if(!lines.length){ toast('Indique las cantidades a devolver.', true); return; }
+    try{
+      const res = await apiPost('/ventas/{{ sale.id }}/devolver', {
+        lines, reason: document.getElementById('ret-reason').value,
+        refund_method: document.getElementById('ret-method').value
+      });
+      window.location.href = '/ventas/{{ sale.id }}';
+    }catch(e){ toast(e.message, true); }
+  });
+});
+</script>
+{% endblock %}

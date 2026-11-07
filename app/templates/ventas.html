@@ -1,0 +1,43 @@
+{% extends 'base.html' %}
+{% block title %}Ventas{% endblock %}
+{% block content %}
+<h1>Historial de ventas</h1>
+<div class="card">
+  <form class="toolbar" method="get">
+    <label class="small">Desde <input type="date" name="desde" value="{{ desde }}"></label>
+    <label class="small">Hasta <input type="date" name="hasta" value="{{ hasta }}"></label>
+    <label class="small">Estado
+      <select name="estado">
+        <option value="" {{ 'selected' if not estado }}>Todos</option>
+        <option value="activa" {{ 'selected' if estado=='activa' }}>Activas</option>
+        <option value="anulada" {{ 'selected' if estado=='anulada' }}>Anuladas</option>
+      </select>
+    </label>
+    <label class="small">Buscar <input name="q" value="{{ q }}" placeholder="Nº o cliente" style="min-width:160px"></label>
+    <button class="btn primary">Filtrar</button>
+    <span class="spacer"></span>
+    <a class="btn" href="{{ url_for('reports.exportar', tipo='ventas', desde=desde, hasta=hasta) }}">⬇ CSV</a>
+  </form>
+  <p><strong>{{ totales.n }}</strong> venta(s) activas · Total <strong>{{ totales.t|money }}</strong></p>
+</div>
+<div class="table-wrap">
+<table>
+  <thead><tr><th>Nº</th><th>Fecha</th><th>Vendedor</th><th>Cliente</th>
+    <th class="num">Total</th><th>Estado</th><th>Cobro</th></tr></thead>
+  <tbody>
+  {% for v in ventas %}
+  <tr>
+    <td><a href="{{ url_for('pos.venta_detalle', sale_id=v.id) }}">{{ v.number }}</a></td>
+    <td>{{ v.datetime|fecha }}</td>
+    <td>{{ v.username }}</td>
+    <td>{{ v.customer_name or 'Consumidor final' }}</td>
+    <td class="num">{{ v.total|money }}</td>
+    <td><span class="badge {{ 'badge-err' if v.status=='anulada' else 'badge-ok' }}">{{ v.status }}</span></td>
+    <td><span class="badge {{ 'badge-warn' if v.payment_status!='pagada' else 'badge-info' }}">{{ v.payment_status }}</span></td>
+  </tr>
+  {% else %}<tr><td colspan="7" class="empty">Sin ventas en el período.</td></tr>
+  {% endfor %}
+  </tbody>
+</table>
+</div>
+{% endblock %}

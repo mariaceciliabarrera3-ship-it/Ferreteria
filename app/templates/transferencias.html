@@ -1,0 +1,58 @@
+{% extends 'base.html' %}
+{% block title %}Transferencias{% endblock %}
+{% block content %}
+<h1>Transferencias bancarias</h1>
+<div class="flash flash-message">Las transferencias <strong>nunca se acreditan automáticamente</strong>:
+un administrador debe verificar cada una manualmente. Este módulo no usa integración bancaria paga.</div>
+<div class="toolbar">
+  <a class="btn {{ 'primary' if not estado }}" href="{{ url_for('pos.transferencias') }}">Todas ({{ resumen.values()|sum }})</a>
+  <a class="btn {{ 'primary' if estado=='pendiente' }}" href="?estado=pendiente">Pendientes ({{ resumen.get('pendiente',0) }})</a>
+  <a class="btn {{ 'primary' if estado=='informada' }}" href="?estado=informada">Informadas ({{ resumen.get('informada',0) }})</a>
+  <a class="btn {{ 'primary' if estado=='verificada' }}" href="?estado=verificada">Verificadas ({{ resumen.get('verificada',0) }})</a>
+  <a class="btn {{ 'primary' if estado=='rechazada' }}" href="?estado=rechazada">Rechazadas ({{ resumen.get('rechazada',0) }})</a>
+</div>
+<div class="table-wrap">
+<table>
+  <thead><tr><th>#</th><th>Fecha</th><th>Venta</th><th>Cliente</th><th>Banco</th>
+    <th>Referencia</th><th class="num">Importe</th><th>Estado</th><th>Acciones</th></tr></thead>
+  <tbody>
+  {% for t in transfers %}
+  <tr>
+    <td>{{ t.id }}</td>
+    <td>{{ t.created_at|fecha }}</td>
+    <td>{% if t.sale_number %}<a href="{{ url_for('pos.venta_detalle', sale_id=t.sale_id) }}">{{ t.sale_number }}</a>{% else %}—{% endif %}</td>
+    <td>{{ t.customer_name or '—' }}</td>
+    <td>{{ t.bank or '—' }}</td>
+    <td class="mono small">{{ t.reference or '—' }}</td>
+    <td class="num">{{ t.amount|money }}</td>
+    <td><span class="badge {{ {'verificada':'badge-ok','rechazada':'badge-err','informada':'badge-warn','pendiente':'badge-mut'}[t.status] }}">{{ t.status }}</span></td>
+    <td>
+      {% if t.status in ('pendiente','informada') %}
+      <button class="btn sm success" data-act="verificada" data-id="{{ t.id }}">✓ Verificar</button>
+      <button class="btn sm danger" data-act="rechazada" data-id="{{ t.id }}">✕ Rechazar</button>
+      {% elif t.verify_note %}<span class="small muted">{{ t.verify_note }}</span>{% endif %}
+    </td>
+  </tr>
+  {% else %}<tr><td colspan="9" class="empty">Sin transferencias registradas.</td></tr>
+  {% endfor %}
+  </tbody>
+</table>
+</div>
+{% endblock %}
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', ()=>{
+  document.querySelectorAll('[data-act]').forEach(btn=>{
+    btn.addEventListener('click', async ()=>{
+      const act = btn.dataset.act;
+      let note = '';
+      if(act === 'rechazada'){ note = prompt('Motivo del rechazo:') || ''; if(note===null) return; }
+      try{
+        await apiPost('/transferencias/' + btn.dataset.id + '/estado', {decision: act, note});
+        location.reload();
+      }catch(e){ toast(e.message, true); }
+    });
+  });
+});
+</script>
+{% endblock %}
