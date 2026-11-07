@@ -1,0 +1,17 @@
+# FerreGest AR — dependencias de DESARROLLO y PRUEBAS (ARQ-06)
+#
+# requirements.txt sólo trae lo necesario para *ejecutar* la aplicación.
+# pytest es una dependencia de desarrollo: no tiene sentido instalarla en la
+# computadora de la ferretería. Por eso vive aquí.
+#
+#   python -m venv .venv
+#   source .venv/bin/activate         (Windows: .venv\Scripts\Activate.ps1)
+#   pip install -r requirements-dev.txt
+#   python -m pytest tests/ -v
+#
+# Ninguna dependencia exige cuenta paga, tarjeta ni servicios externos.
+
+-r requirements.txt
+
+# Probado con pytest 9.0.3 sobre Python 3.13.
+pytest>=8.0,<10
