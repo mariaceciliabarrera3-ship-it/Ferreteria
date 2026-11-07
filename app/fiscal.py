@@ -123,7 +123,7 @@ def stock_valuation() -> dict:
         one=True,
     )
     return {"cost": float(q2(row["cost"])), "retail": float(q2(row["retail"])),
-            "items": row["con_stock"]}
+            "items_count": row["con_stock"]}
 
 
 def sales_profit(since: str, until: str) -> dict:
