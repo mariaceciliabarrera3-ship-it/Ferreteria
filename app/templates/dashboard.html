@@ -25,7 +25,7 @@
 <div class="grid grid-3" style="margin-top:1rem">
   <div class="kpi"><div class="label">Stock valorizado a costo</div>
     <div class="value">{{ valor.cost|money }}</div>
-    <div class="sub">a precio de venta: {{ valor.retail|money }} · {{ valor.items }} ítems</div></div>
+    <div class="sub">a precio de venta: {{ valor.retail|money }} · {{ valor.items_count }} ítems</div></div>
   <div class="kpi"><div class="label">Cuentas por cobrar (clientes)</div>
     <div class="value">{{ cc_saldo|money }}</div>
     <div class="sub">deuda de clientes con cuenta corriente</div></div>
