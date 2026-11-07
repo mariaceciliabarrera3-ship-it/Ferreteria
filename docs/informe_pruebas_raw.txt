@@ -1,0 +1,62 @@
+=== FerreGest AR - informe de pruebas ===
+Fecha ejecucion (UTC): 2026-11-07T15:48:27Z
+Comando: python3 -m pytest tests/ -v
+Python 3.13.16
+Flask 3.1.3
+SQLite 3.46.1
+pytest 9.0.3
+
+============================= test session starts ==============================
+platform linux -- Python 3.13.16, pytest-9.0.3, pluggy-1.7.0 -- /usr/local/bin/python3
+cachedir: .pytest_cache
+rootdir: /home/user/ferregest
+plugins: platformdirs-4.14.3, anyio-4.16.0
+collecting ... collected 45 items
+
+tests/test_dominio_arq.py::test_arq09_redondeo_comercial PASSED          [  2%]
+tests/test_dominio_arq.py::test_arq09_impuestos_agregado_e_incluido PASSED [  4%]
+tests/test_dominio_arq.py::test_arq09_venta_sin_deriva_de_centavos PASSED [  6%]
+tests/test_dominio_arq.py::test_arq09_renglon_con_fracciones_y_descuento PASSED [  8%]
+tests/test_dominio_arq.py::test_arq09_caja_suma_sin_error_acumulado PASSED [ 11%]
+tests/test_dominio_arq.py::test_arq11_migracion_fallida_no_deja_esquema_a_medias PASSED [ 13%]
+tests/test_dominio_arq.py::test_arq11_migraciones_registradas_e_idempotentes PASSED [ 15%]
+tests/test_dominio_arq.py::test_arq12_pragma_de_espera_configurado PASSED [ 17%]
+tests/test_dominio_arq.py::test_arq12_ventas_simultaneas_no_pierden_stock PASSED [ 20%]
+tests/test_dominio_arq.py::test_arq06_dependencias_de_prueba_documentadas PASSED [ 22%]
+tests/test_dominio_arq.py::test_arq07_el_repositorio_no_contiene_secretos_ni_bases PASSED [ 24%]
+tests/test_dominio_arq.py::test_arq07_gitignore_cubre_bases_y_secretos PASSED [ 26%]
+tests/test_dominio_arq.py::test_arq07_plantilla_de_variables_sin_valores_reales PASSED [ 28%]
+tests/test_pruebas.py::test_01_alta_producto_cable PASSED                [ 31%]
+tests/test_pruebas.py::test_02_venta_fraccionada PASSED                  [ 33%]
+tests/test_pruebas.py::test_03_compra PASSED                             [ 35%]
+tests/test_pruebas.py::test_04_transferencia PASSED                      [ 37%]
+tests/test_pruebas.py::test_05_impuestos PASSED                          [ 40%]
+tests/test_pruebas.py::test_06_caja PASSED                               [ 42%]
+tests/test_pruebas.py::test_07_devolucion PASSED                         [ 44%]
+tests/test_pruebas.py::test_08_usuarios PASSED                           [ 46%]
+tests/test_pruebas.py::test_09_licencia PASSED                           [ 48%]
+tests/test_pruebas.py::test_10_persistencia PASSED                       [ 51%]
+tests/test_pruebas.py::test_11_seguridad PASSED                          [ 53%]
+tests/test_pruebas.py::test_12_integridad PASSED                         [ 55%]
+tests/test_seguridad_arq.py::test_arq01_js_no_usa_innerhtml PASSED       [ 57%]
+tests/test_seguridad_arq.py::test_arq01_escape_helper_presente PASSED    [ 60%]
+tests/test_seguridad_arq.py::test_arq01_arnes_dom_en_node PASSED         [ 62%]
+tests/test_seguridad_arq.py::test_arq01_producto_y_cliente_hostil_se_renderiza_como_texto PASSED [ 64%]
+tests/test_seguridad_arq.py::test_arq02_dos_instancias_con_dos_bases PASSED [ 66%]
+tests/test_seguridad_arq.py::test_arq03_renderizar_no_modifica_la_base PASSED [ 68%]
+tests/test_seguridad_arq.py::test_arq04_produccion_sin_licencia_bloquea_ventas PASSED [ 71%]
+tests/test_seguridad_arq.py::test_arq04_modo_demo_permite_operar PASSED  [ 73%]
+tests/test_seguridad_arq.py::test_arq05_seed_demo_exige_confirmacion PASSED [ 75%]
+tests/test_seguridad_arq.py::test_arq08_bloqueo_de_login_persistente PASSED [ 77%]
+tests/test_seguridad_arq.py::test_arq10_logout_exige_post_y_csrf PASSED  [ 80%]
+tests/test_seguridad_arq.py::test_arq13_next_no_redirige_fuera_del_sitio[//evil.com/robo] PASSED [ 82%]
+tests/test_seguridad_arq.py::test_arq13_next_no_redirige_fuera_del_sitio[/\\evil.com] PASSED [ 84%]
+tests/test_seguridad_arq.py::test_arq13_next_no_redirige_fuera_del_sitio[https://evil.com] PASSED [ 86%]
+tests/test_seguridad_arq.py::test_arq13_next_no_redirige_fuera_del_sitio[http:/evil.com] PASSED [ 88%]
+tests/test_seguridad_arq.py::test_arq13_next_interno_si_funciona PASSED  [ 91%]
+tests/test_seguridad_arq.py::test_arq14_cabeceras_de_seguridad PASSED    [ 93%]
+tests/test_seguridad_arq.py::test_arq16_error_500_no_filtra_el_traceback PASSED [ 95%]
+tests/test_seguridad_arq.py::test_csrf_ausente_rechaza_post PASSED       [ 97%]
+tests/test_seguridad_arq.py::test_api_sin_sesion_devuelve_401 PASSED     [100%]
+
+============================== 45 passed in 8.34s ==============================
