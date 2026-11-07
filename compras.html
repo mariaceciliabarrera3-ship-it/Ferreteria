@@ -1,0 +1,35 @@
+{% extends 'base.html' %}
+{% block title %}Compras{% endblock %}
+{% block content %}
+<h1>Compras a proveedores</h1>
+<div class="card">
+  <form class="toolbar" method="get">
+    <label class="small">Desde <input type="date" name="desde" value="{{ desde }}"></label>
+    <label class="small">Hasta <input type="date" name="hasta" value="{{ hasta }}"></label>
+    <button class="btn primary">Filtrar</button>
+    <span class="spacer"></span>
+    {% if 'compras.gestionar' in user_perms %}
+    <a class="btn success" href="{{ url_for('purchases.nueva') }}">+ Nueva orden de compra</a>
+    {% endif %}
+  </form>
+  <p><strong>{{ totales.n }}</strong> compra(s) · Total <strong>{{ totales.t|money }}</strong></p>
+</div>
+<div class="table-wrap">
+<table>
+  <thead><tr><th>Nº</th><th>Fecha</th><th>Proveedor</th><th class="num">Total</th>
+    <th>Pago</th><th>Estado</th></tr></thead>
+  <tbody>
+  {% for c in compras %}
+  <tr>
+    <td><a href="{{ url_for('purchases.detalle', pid=c.id) }}">{{ c.number }}</a></td>
+    <td>{{ c.datetime|fecha }}</td>
+    <td>{{ c.supplier_name or '—' }}</td>
+    <td class="num">{{ c.total|money }}</td>
+    <td>{{ c.pay_method }}</td>
+    <td><span class="badge {{ {'recibida':'badge-ok','parcial':'badge-warn','pendiente':'badge-mut'}[c.status] }}">{{ c.status }}</span></td>
+  </tr>
+  {% else %}<tr><td colspan="6" class="empty">Sin compras en el período.</td></tr>{% endfor %}
+  </tbody>
+</table>
+</div>
+{% endblock %}

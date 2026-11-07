@@ -1,0 +1,89 @@
+{% extends 'base.html' %}
+{% block title %}Compra {{ purchase.number }}{% endblock %}
+{% block content %}
+<h1>Compra {{ purchase.number }}
+  <span class="badge {{ {'recibida':'badge-ok','parcial':'badge-warn','pendiente':'badge-mut'}[purchase.status] }}">{{ purchase.status }}</span>
+</h1>
+<div class="grid grid-2">
+  <div class="card">
+    <h2 style="margin-top:0">Renglones</h2>
+    <div class="table-wrap"><table>
+      <thead><tr><th>Producto</th><th>Unidad</th><th class="num">Pedida</th>
+        <th class="num">Recibida</th><th class="num">Costo</th><th class="num">Total</th></tr></thead>
+      <tbody>
+      {% for it in items %}
+      <tr>
+        <td>{{ it.description }}</td><td>{{ it.unit }}</td>
+        <td class="num">{{ it.qty_ordered|qty }}</td>
+        <td class="num {{ 'bold' if it.qty_received >= it.qty_ordered }}">
+          <span class="badge {{ 'badge-ok' if it.qty_received >= it.qty_ordered else 'badge-warn' }}">{{ it.qty_received|qty }}</span></td>
+        <td class="num">{{ it.unit_cost|money }}</td>
+        <td class="num bold">{{ it.line_total|money }}</td>
+      </tr>
+      {% endfor %}
+      </tbody>
+    </table></div>
+    <table>
+      <tr><td>Subtotal</td><td class="num">{{ purchase.subtotal|money }}</td></tr>
+      <tr><td>Impuestos</td><td class="num">{{ purchase.tax_total|money }}</td></tr>
+      <tr><td class="bold">TOTAL</td><td class="num bold">{{ purchase.total|money }}</td></tr>
+      <tr><td>Condición de pago</td><td class="num">{{ purchase.pay_method }}</td></tr>
+      <tr><td>Proveedor</td><td class="num">{{ purchase.supplier_name or '—' }}</td></tr>
+      <tr><td>Fecha</td><td class="num">{{ purchase.datetime|fecha }}</td></tr>
+    </table>
+    {% if purchase.notes %}<p class="muted small">{{ purchase.notes }}</p>{% endif %}
+  </div>
+  <div>
+    {% if can_receive %}
+    <div class="card">
+      <h2 style="margin-top:0">Recepción de mercadería</h2>
+      <p class="hint">Recepción parcial o total: el stock se actualiza al confirmar y el costo
+        promedio del producto se recalcula con el ponderado.</p>
+      {% for it in items %}
+      <div class="form-row" style="align-items:end">
+        <label>{{ it.description }} — faltan {{ (it.qty_ordered - it.qty_received)|qty }} {{ it.unit }}
+          <input type="number" step="0.01" min="0" max="{{ it.qty_ordered - it.qty_received }}"
+                 value="0" data-rcv="{{ it.id }}" class="rcv-qty">
+        </label>
+      </div>
+      {% endfor %}
+      <label>Notas de recepción <input id="rcv-notes"></label>
+      <button class="btn success" id="btn-rcv">Registrar recepción</button>
+    </div>
+    {% endif %}
+    <div class="card">
+      <h2 style="margin-top:0">Historial de recepciones</h2>
+      {% for r in receipts %}
+      <p><strong>{{ r.datetime|fecha }}</strong> — {{ r.username or '—' }}
+        {% if r.notes %}<br><span class="muted small">{{ r.notes }}</span>{% endif %}</p>
+        <ul class="small">
+          {% for ri in receipt_items.get(r.id, []) %}
+          <li>renglón #{{ ri.purchase_item_id }}: {{ ri.qty|qty }}</li>
+          {% endfor %}
+        </ul>
+      {% else %}<p class="muted">Aún no se recibió mercadería.</p>{% endfor %}
+    </div>
+  </div>
+</div>
+{% endblock %}
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', ()=>{
+  const btn = document.getElementById('btn-rcv');
+  if(!btn) return;
+  btn.addEventListener('click', async ()=>{
+    const lines = [];
+    document.querySelectorAll('.rcv-qty').forEach(el=>{
+      const qty = Number(el.value.replace(',','.'));
+      if(qty > 0) lines.push({purchase_item_id: Number(el.dataset.rcv), qty});
+    });
+    if(!lines.length){ toast('Indique cantidades recibidas.', true); return; }
+    try{
+      await apiPost('/compras/{{ purchase.id }}/recibir',
+        {lines, notes: document.getElementById('rcv-notes').value});
+      location.reload();
+    }catch(e){ toast(e.message, true); }
+  });
+});
+</script>
+{% endblock %}

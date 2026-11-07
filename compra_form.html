@@ -1,0 +1,136 @@
+{% extends 'base.html' %}
+{% block title %}Nueva compra{% endblock %}
+{% block content %}
+<h1>Nueva orden de compra</h1>
+<div class="grid grid-2">
+  <div class="card">
+    <div class="form-row">
+      <label>Proveedor
+        <select id="po-supplier"><option value="">— sin proveedor —</option>
+          {% for s in suppliers %}<option value="{{ s.id }}">{{ s.name }}</option>{% endfor %}
+        </select></label>
+      <label>Condición de pago
+        <select id="po-pay">
+          <option value="credito">Crédito (cuenta corriente del proveedor)</option>
+          <option value="transferencia">Transferencia</option>
+          <option value="efectivo">Efectivo</option>
+        </select></label>
+    </div>
+    <label>Notas <input id="po-notes" placeholder="Observaciones de la compra"></label>
+    <h2>Renglones</h2>
+    <div class="toolbar">
+      <input id="po-search" placeholder="Buscar producto…" style="min-width:220px">
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Producto</th><th>Unidad</th><th class="num">Cant.</th>
+          <th class="num">Costo unit.</th><th class="num">Total</th><th></th></tr></thead>
+        <tbody id="po-body"><tr><td colspan="6" class="empty">Agregue renglones.</td></tr></tbody>
+      </table>
+    </div>
+    <p class="bold" id="po-total">Total: $ 0,00</p>
+    <button class="btn primary" id="po-save">Registrar compra</button>
+    <span class="hint" id="po-status"></span>
+  </div>
+  <div class="card">
+    <h2 style="margin-top:0">Productos disponibles</h2>
+    <div class="table-wrap" style="max-height:520px;overflow:auto">
+      <table id="po-products">
+        <tbody>
+        {% for p in products %}
+        <tr data-id="{{ p.id }}" data-name="{{ p.description|lower }}" data-code="{{ p.code|lower }}"
+            data-unit="{{ p.base_unit }}" data-cost="{{ p.avg_cost or p.cost_price }}"
+            class="pos-item" style="cursor:pointer">
+          <td>{{ p.description }}<br><span class="muted small mono">{{ p.code }}</span></td>
+          <td class="num small">{{ p.base_unit }}</td>
+        </tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    <p class="hint">Haga clic en un producto para agregarlo a la compra con su costo promedio actual;
+      edítelo antes de guardar si corresponde.</p>
+  </div>
+</div>
+{% endblock %}
+{% block scripts %}
+<script>
+const poItems = [];
+// ARQ-01: los renglones se construyen con nodos DOM. `l.description` viene de
+// la base y podía contener HTML/JS: con textContent se muestra como texto.
+function poRender(){
+  const body = document.getElementById('po-body');
+  body.textContent = '';
+  if(!poItems.length){
+    const td = el('td', {colspan: '6', class: 'empty'}, 'Agregue renglones.');
+    body.appendChild(el('tr', null, td));
+  } else {
+    poItems.forEach((l,i)=>{
+      const select = el('select', {'data-i': i, 'data-f': 'unit'});
+      (window.UNITS || []).forEach(u=>{
+        const opt = el('option', {value: u}, u);
+        if(u === l.unit) opt.selected = true;
+        select.appendChild(opt);
+      });
+      const tr = el('tr', null,
+        el('td', null, l.description),
+        el('td', null, select),
+        el('td', {class:'num'}, el('input', {class:'qty-input', 'data-i': i,
+          'data-f':'qty', value: l.qty})),
+        el('td', {class:'num'}, el('input', {class:'price-input', 'data-i': i,
+          'data-f':'unit_cost', value: l.unit_cost})),
+        el('td', {class:'num'}, moneyAR(l.qty*l.unit_cost)),
+        el('td', null, el('button', {class:'btn sm danger', 'data-del': i,
+          type:'button', title:'Quitar'}, '✕'))
+      );
+      body.appendChild(tr);
+    });
+  }
+  const t = poItems.reduce((a,l)=>a+l.qty*l.unit_cost,0);
+  document.getElementById('po-total').textContent = 'Total: ' + moneyAR(t);
+  body.querySelectorAll('input,select').forEach(el=>{
+    el.addEventListener('change', ()=>{
+      const i=Number(el.dataset.i), f=el.dataset.f;
+      let v = el.value.replace(',','.');
+      poItems[i][f] = (f==='unit') ? v : Math.max(0, Number(v)||0);
+      poRender();
+    });
+  });
+  body.querySelectorAll('[data-del]').forEach(el=>{
+    el.addEventListener('click', ()=>{ poItems.splice(Number(el.dataset.del),1); poRender(); });
+  });
+}
+document.addEventListener('DOMContentLoaded', ()=>{
+  window.UNITS = {{ units|tojson }};
+  document.getElementById('po-search').addEventListener('input', e=>{
+    const q = e.target.value.toLowerCase();
+    document.querySelectorAll('#po-products tr[data-id]').forEach(tr=>{
+      tr.style.display = (!q || tr.dataset.name.includes(q) || tr.dataset.code.includes(q)) ? '' : 'none';
+    });
+  });
+  document.querySelectorAll('#po-products tr[data-id]').forEach(tr=>{
+    tr.addEventListener('click', ()=>{
+      poItems.push({product_id: Number(tr.dataset.id),
+        description: tr.querySelector('td').innerText.split('\n')[0],
+        unit: tr.dataset.unit, qty: 1, unit_cost: Number(tr.dataset.cost)||0});
+      poRender();
+    });
+  });
+  document.getElementById('po-save').addEventListener('click', async ()=>{
+    if(!poItems.length){ toast('Agregue al menos un renglón.', true); return; }
+    const st = document.getElementById('po-status'); st.textContent='Guardando…';
+    try{
+      const res = await apiPost('/compras/nueva', {
+        supplier_id: document.getElementById('po-supplier').value
+          ? Number(document.getElementById('po-supplier').value) : null,
+        pay_method: document.getElementById('po-pay').value,
+        notes: document.getElementById('po-notes').value,
+        items: poItems
+      });
+      window.location.href = '/compras/' + res.id;
+    }catch(e){ st.textContent=''; toast(e.message, true); }
+  });
+  poRender();
+});
+</script>
+{% endblock %}

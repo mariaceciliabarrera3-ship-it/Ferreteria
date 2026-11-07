@@ -1,0 +1,194 @@
+{% extends 'base.html' %}
+{% block title %}Configuración{% endblock %}
+{% block content %}
+<h1>Configuración del negocio</h1>
+<div class="tabs">
+  <a href="?tab=negocio" class="{{ 'active' if tab=='negocio' }}">🏪 Negocio</a>
+  <a href="?tab=impuestos" class="{{ 'active' if tab=='impuestos' }}">🧾 Impuestos</a>
+  <a href="?tab=categorias" class="{{ 'active' if tab=='categorias' }}">🗂 Categorías</a>
+  <a href="?tab=unidades" class="{{ 'active' if tab=='unidades' }}">📐 Unidades</a>
+  <a href="?tab=transferencias" class="{{ 'active' if tab=='transferencias' }}">🏦 Transferencias</a>
+  <a href="?tab=medios" class="{{ 'active' if tab=='medios' }}">💳 Medios de pago</a>
+</div>
+
+{% if tab == 'negocio' %}
+<form method="post" action="{{ url_for('admin.config_negocio') }}" class="card" style="max-width:760px">
+  <input type="hidden" name="_csrf" value="{{ csrf_token }}">
+  <label>Nombre del negocio <input name="business_name" value="{{ settings.get('business_name','') }}"></label>
+  <label>Dirección <input name="business_address" value="{{ settings.get('business_address','') }}"></label>
+  <div class="form-row">
+    <label>CUIT <input name="business_cuit" value="{{ settings.get('business_cuit','') }}"></label>
+    <label>Condición IVA
+      <input name="business_iva" value="{{ settings.get('business_iva','') }}"
+             placeholder="Ej.: Responsable Inscripto / Monotributo / Consumidor Final">
+    </label>
+  </div>
+  <label>Pie de comprobante <input name="ticket_footer" value="{{ settings.get('ticket_footer','') }}"></label>
+  <label>Nota legal en comprobantes <input name="fiscal_note" value="{{ settings.get('fiscal_note','') }}"
+    placeholder="Texto aclaratorio (el comprobante interno NO es factura fiscal)"></label>
+  <p class="hint">Moneda: Pesos argentinos (ARS) · Formato de fecha: dd/MM/aaaa — configurados por defecto para Argentina.</p>
+  <button class="btn primary">Guardar</button>
+</form>
+{% elif tab == 'impuestos' %}
+<div class="flash flash-message">
+  <strong>Configure su esquema fiscal aquí.</strong> Ningún impuesto viene activado por defecto.
+  Los comprobantes del sistema son internos de gestión: <strong>no sustituyen la facturación
+  electrónica ante ARCA</strong>. Verifique con un profesional la configuración que declare
+  (alícuotas, percepciones, retenciones) antes de usarla para obligaciones fiscales.
+</div>
+<div class="card">
+  <h2 style="margin-top:0">Nuevo concepto fiscal</h2>
+  <form method="post" action="{{ url_for('admin.config_impuestos') }}">
+    <input type="hidden" name="_csrf" value="{{ csrf_token }}">
+    <input type="hidden" name="action" value="crear">
+    <div class="form-row-4">
+      <label>Nombre * <input name="name" placeholder="IVA 21% / Percepción IIBB…" required></label>
+      <label>Alícuota (%) * <input name="rate" value="0" inputmode="decimal" required></label>
+      <label>Aplicación
+        <select name="mode">
+          <option value="agregado">Se agrega al precio</option>
+          <option value="incluido">Incluido en el precio</option>
+        </select></label>
+      <label>Alcance
+        <select name="scope">
+          <option value="global">Todos los productos</option>
+          <option value="categoria">Una categoría</option>
+          <option value="producto">Un producto</option>
+        </select></label>
+    </div>
+    <div class="form-row-4">
+      <label>Categoría (si aplica)
+        <select name="category_id"><option value="">—</option>
+          {% for c in cats %}<option value="{{ c.id }}">{{ c.name }}</option>{% endfor %}</select></label>
+      <label>Producto (si aplica)
+        <select name="product_id"><option value="">—</option></select></label>
+      <label>Vigencia desde <input type="date" name="valid_from"></label>
+      <label>Vigencia hasta <input type="date" name="valid_to"></label>
+    </div>
+    <label style="display:flex;gap:.5rem;align-items:center;font-weight:400">
+      <input type="checkbox" name="active" value="1"> Activar inmediatamente</label>
+    <label>Notas <input name="notes" placeholder="Base imponible, reglas, excenciones…"></label>
+    <button class="btn primary">Crear concepto</button>
+  </form>
+</div>
+<div class="table-wrap">
+<table>
+  <thead><tr><th>Nombre</th><th class="num">Alícuota</th><th>Aplicación</th><th>Alcance</th>
+    <th>Vigencia</th><th>Estado</th><th>Acciones</th></tr></thead>
+  <tbody>
+  {% for t in taxes %}
+  <tr>
+    <td>{{ t.name }}{% if t.notes %}<br><span class="muted small">{{ t.notes }}</span>{% endif %}</td>
+    <td class="num">{{ t.rate }}%</td>
+    <td>{{ t.mode }}</td>
+    <td>{{ t.scope }}{% if t.cat_name %} — {{ t.cat_name }}{% endif %}{% if t.prod_desc %} — {{ t.prod_desc }}{% endif %}</td>
+    <td class="small">{{ t.valid_from or '…' }} → {{ t.valid_to or '…' }}</td>
+    <td><span class="badge {{ 'badge-ok' if t.active else 'badge-mut' }}">{{ 'activa' if t.active else 'inactiva' }}</span></td>
+    <td>
+      <form method="post" action="{{ url_for('admin.config_impuestos') }}" style="display:inline">
+        <input type="hidden" name="_csrf" value="{{ csrf_token }}">
+        <input type="hidden" name="action" value="{{ 'desactivar' if t.active else 'activar' }}">
+        <input type="hidden" name="tax_id" value="{{ t.id }}">
+        <button class="btn sm {{ 'danger' if t.active else 'success' }}">{{ 'Desactivar' if t.active else 'Activar' }}</button>
+      </form>
+      <a class="btn sm" href="{{ url_for('admin.impuesto_historial', tid=t.id) }}">Historial</a>
+    </td>
+  </tr>
+  {% else %}<tr><td colspan="7" class="empty">Sin conceptos fiscales configurados.</td></tr>
+  {% endfor %}
+  </tbody>
+</table>
+</div>
+{% elif tab == 'categorias' %}
+<div class="grid grid-2">
+  <div class="card">
+    <h2 style="margin-top:0">Categorías</h2>
+    <form method="post" action="{{ url_for('admin.config_categorias') }}">
+      <input type="hidden" name="_csrf" value="{{ csrf_token }}">
+      <div class="toolbar">
+        <input name="name" placeholder="Nueva categoría (ej.: Pinturas)" required>
+        <button class="btn primary">Agregar</button>
+      </div>
+    </form>
+    <table>
+      {% for c in cats %}<tr><td>{{ c.name }}</td></tr>{% else %}
+      <tr><td class="empty">Sin categorías.</td></tr>{% endfor %}
+    </table>
+  </div>
+  <div class="card">
+    <h2 style="margin-top:0">Implicancias</h2>
+    <p class="hint">Las categorías agrupan productos para informes, filtros y para asociar
+    impuestos por alcance «categoría».</p>
+  </div>
+</div>
+{% elif tab == 'unidades' %}
+<div class="grid grid-2">
+  <div class="card">
+    <h2 style="margin-top:0">Unidades de medida disponibles</h2>
+    <form method="post" action="{{ url_for('admin.config_unidades') }}">
+      <input type="hidden" name="_csrf" value="{{ csrf_token }}">
+      <div class="toolbar">
+        <input name="name" placeholder="Nueva unidad (ej.: rollo)" required>
+        <button class="btn primary">Agregar</button>
+      </div>
+    </form>
+    <div class="check-list">
+      {% for u in units %}<span class="badge badge-mut">{{ u.name }}</span>{% endfor %}
+    </div>
+    <p class="hint">Se admiten cantidades decimales (ej.: 2,75 metros). Las conversiones
+    entre unidades se configuran <strong>por producto</strong> en su ficha.</p>
+  </div>
+</div>
+{% elif tab == 'transferencias' %}
+<div class="card">
+  <h2 style="margin-top:0">Cuentas de destino para transferencias</h2>
+  <p class="hint">Estas cuentas se ofrecen al cobrar una venta por transferencia.
+  El sistema no usa integración bancaria: las transferencias se verifican manualmente.</p>
+  <form method="post" action="{{ url_for('admin.config_cuentas') }}">
+    <input type="hidden" name="_csrf" value="{{ csrf_token }}">
+    <input type="hidden" name="action" value="crear">
+    <div class="form-row-4">
+      <label>Banco / entidad <input name="bank" required placeholder="Banco Nación"></label>
+      <label>Alias <input name="alias" placeholder="MI.FERRETERIA"></label>
+      <label>CBU <input name="cbu" placeholder="0000000000000000000000"></label>
+      <label>Titular <input name="holder"></label>
+    </div>
+    <button class="btn primary">Agregar cuenta</button>
+  </form>
+  <table style="margin-top:.8rem">
+    <thead><tr><th>Banco</th><th>Alias</th><th>CBU</th><th>Titular</th><th>Estado</th></tr></thead>
+    <tbody>
+    {% for a in accounts %}
+    <tr><td>{{ a.bank }}</td><td>{{ a.alias }}</td><td class="mono small">{{ a.cbu }}</td>
+      <td>{{ a.holder }}</td>
+      <td>
+        <form method="post" action="{{ url_for('admin.config_cuentas') }}" style="display:inline">
+          <input type="hidden" name="_csrf" value="{{ csrf_token }}">
+          <input type="hidden" name="action" value="toggle">
+          <input type="hidden" name="id" value="{{ a.id }}">
+          <span class="badge {{ 'badge-ok' if a.active else 'badge-err' }}">{{ 'activa' if a.active else 'inactiva' }}</span>
+          <button class="btn sm">{{ 'Desactivar' if a.active else 'Activar' }}</button>
+        </form>
+      </td></tr>
+    {% else %}<tr><td colspan="5" class="empty">Sin cuentas cargadas.</td></tr>{% endfor %}
+    </tbody>
+  </table>
+</div>
+{% elif tab == 'medios' %}
+<div class="card" style="max-width:640px">
+  <h2 style="margin-top:0">Medios de pago habilitados</h2>
+  <form method="post" action="{{ url_for('admin.config_metodos') }}">
+    <input type="hidden" name="_csrf" value="{{ csrf_token }}">
+    <div class="check-list">
+      {% for m in ['efectivo','transferencia','debito','credito','cuenta_corriente'] %}
+      <label style="font-weight:400"><input type="checkbox" name="method" value="{{ m }}"
+        {{ 'checked' if m in payment_methods }}> {{ m }}</label>
+      {% endfor %}
+    </div>
+    <p class="hint">La transferencia es un medio de pago de primera clase con verificación
+    manual de administrador (estados: pendiente → informada → verificada / rechazada).</p>
+    <button class="btn primary">Guardar</button>
+  </form>
+</div>
+{% endif %}
+{% endblock %}
