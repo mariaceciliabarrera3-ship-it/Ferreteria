@@ -1,0 +1,61 @@
+# FerreGest AR — exclusiones del repositorio (ARQ-07 / ETAPA 2)
+#
+# Regla: a GitHub va el CÓDIGO. Nunca secretos, nunca bases de datos locales,
+# nunca copias de seguridad ni exportaciones con datos del comercio.
+
+# ------------------------------------------------------------------- Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.egg-info/
+.venv/
+venv/
+env/
+.pytest_cache/
+.mypy_cache/
+.coverage
+htmlcov/
+
+# --------------------------------------------------------- secretos y claves
+.env
+.env.*
+!.env.example
+.secret
+.license_key
+*secret*
+*token*
+*credential*
+*.pem
+*.key
+
+# ----------------------------------------- bases SQLite y archivos auxiliares
+*.db
+*.sqlite
+*.sqlite3
+*.db-wal
+*.db-shm
+*-wal
+*-shm
+*-journal
+
+# ------------------------------- datos locales, respaldos y exportaciones
+var/
+backups/
+instance/
+uploads/
+backup_*.zip
+*.db.tmp
+*.bak
+*.dump
+export_*.json
+licencias_emitidas.jsonl
+claves_demo.txt
+clave_inicial_admin.txt
+
+# ------------------------------------------------ temporales, logs y sistema
+*.log
+*.tmp
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
