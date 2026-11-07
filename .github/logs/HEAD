@@ -1,2 +1,0 @@
-0000000000000000000000000000000000000000 04150c02a1b69ef9c72d39b56d6f8eb18efdda98 FerreGest AR <dev@ferregest.local> 1794066835 +0000	commit (initial): FerreGest AR: auditoria ARQ-01..ARQ-17 cerrada (XSS, dinero decimal, migraciones atomicas, modo demo/produccion, seed protegido) + 33 pruebas nuevas y documentacion
-04150c02a1b69ef9c72d39b56d6f8eb18efdda98 65f4e876aa53b56677d886db5fce9e68900c237b FerreGest AR <dev@ferregest.local> 1794069818 +0000	commit: run.py: usar bind_host() en vez de 0.0.0.0 fijo (ARQ-17)
