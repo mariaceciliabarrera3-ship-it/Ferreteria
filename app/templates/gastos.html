@@ -1,0 +1,55 @@
+{% extends 'base.html' %}
+{% block title %}Gastos{% endblock %}
+{% block content %}
+<h1>Gastos</h1>
+<div class="grid grid-3">
+  <div class="kpi"><div class="label">Gastos del mes</div>
+    <div class="value">{{ total|money }}</div></div>
+</div>
+<div class="grid grid-2" style="margin-top:1rem">
+  <div class="card">
+    <h2 style="margin-top:0">Registrar gasto</h2>
+    {% if 'caja.operar' in user_perms %}
+    <form method="post">
+      <input type="hidden" name="_csrf" value="{{ csrf_token }}">
+      <label>Concepto * <input name="concept" required placeholder="Ej.: electricidad, alquiler, transporte"></label>
+      <div class="form-row">
+        <label>Categoría
+          <select name="category">
+            <option>General</option><option>Servicios</option><option>Alquiler</option>
+            <option>Sueldos</option><option>Transporte</option><option>Mantenimiento</option>
+            <option>Otros</option>
+          </select></label>
+        <label>Importe * <input name="amount" required inputmode="decimal"></label>
+      </div>
+      <div class="form-row">
+        <label>Medio de pago
+          <select name="method">
+            <option value="efectivo">Efectivo</option>
+            <option value="transferencia">Transferencia</option>
+            <option value="debito">Débito</option>
+          </select></label>
+        <label style="display:flex;gap:.5rem;align-items:center;font-weight:400;margin-top:1.4rem">
+          <input type="checkbox" name="from_cash" value="1" checked> Descontar de la caja abierta
+        </label>
+      </div>
+      <button class="btn primary">Registrar gasto</button>
+    </form>
+    {% else %}<p class="muted">No tiene permiso para registrar gastos.</p>{% endif %}
+  </div>
+  <div class="card">
+    <h2 style="margin-top:0">Últimos gastos</h2>
+    <div class="table-wrap" style="max-height:400px;overflow:auto"><table>
+      <thead><tr><th>Fecha</th><th>Concepto</th><th>Categoría</th>
+        <th class="num">Importe</th><th>Usuario</th></tr></thead>
+      <tbody>
+      {% for g in gastos %}
+      <tr><td class="small">{{ g.datetime|fecha }}</td><td>{{ g.concept }}</td>
+        <td><span class="badge badge-mut">{{ g.category }}</span></td>
+        <td class="num">{{ g.amount|money }}</td><td class="small">{{ g.username or '—' }}</td></tr>
+      {% else %}<tr><td colspan="5" class="empty">Sin gastos.</td></tr>{% endfor %}
+      </tbody>
+    </table></div>
+  </div>
+</div>
+{% endblock %}

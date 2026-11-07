@@ -1,0 +1,23 @@
+{% extends 'base.html' %}
+{% block title %}Historial de impuestos{% endblock %}
+{% block content %}
+<h1>Historial de cambios — concepto fiscal #{{ tid }}</h1>
+<div class="table-wrap">
+<table>
+  <thead><tr><th>Fecha</th><th>Acción</th><th>Valores anteriores</th><th>Valores nuevos</th></tr></thead>
+  <tbody>
+  {% for r in rows %}
+  <tr>
+    <td class="small">{{ r.datetime|fecha }}</td>
+    <td><span class="badge badge-info">{{ r.action }}</span></td>
+    <td class="small mono">{{ r.old_json or '—' }}</td>
+    <td class="small mono">{{ r.new_json or '—' }}</td>
+  </tr>
+  {% else %}<tr><td colspan="4" class="empty">Sin cambios registrados.</td></tr>{% endfor %}
+  </tbody>
+</table>
+</div>
+<p class="hint">Las ventas históricas conservan los importes calculados al momento de
+registrarse: modificar o desactivar un impuesto nunca altera operaciones pasadas.</p>
+<a class="btn" href="{{ url_for('admin.configuracion', tab='impuestos') }}">Volver</a>
+{% endblock %}

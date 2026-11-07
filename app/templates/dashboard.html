@@ -1,0 +1,106 @@
+{% extends 'base.html' %}
+{% block title %}Panel{% endblock %}
+{% block content %}
+<h1>Panel principal</h1>
+<div class="grid grid-5">
+  <div class="kpi"><div class="label">Ventas hoy</div>
+    <div class="value">{{ ventas_hoy.s|money }}</div>
+    <div class="sub">{{ ventas_hoy.c }} operación(es)</div></div>
+  <div class="kpi"><div class="label">Ventas del mes</div>
+    <div class="value">{{ ventas_mes.s|money }}</div>
+    <div class="sub">{{ ventas_mes.c }} operaciones</div></div>
+  {% if 'reportes.ganancias' in user_perms %}
+  <div class="kpi good"><div class="label">Ganancia del mes</div>
+    <div class="value">{{ profit.profit|money }}</div>
+    <div class="sub">margen {{ profit.margin }}% · ventas {{ profit.sales|money }}</div></div>
+  {% endif %}
+  <div class="kpi {{ 'warn' if low_stock else 'good' }}"><div class="label">Stock bajo mínimo</div>
+    <div class="value">{{ low_stock }}</div>
+    <div class="sub">{{ sin_stock }} producto(s) sin existencias</div></div>
+  <div class="kpi {{ 'warn' if transfer_pend.c else '' }}"><div class="label">Transferencias por verificar</div>
+    <div class="value">{{ transfer_pend.c }}</div>
+    <div class="sub">{{ transfer_pend.s|money }}</div></div>
+</div>
+
+<div class="grid grid-3" style="margin-top:1rem">
+  <div class="kpi"><div class="label">Stock valorizado a costo</div>
+    <div class="value">{{ valor.cost|money }}</div>
+    <div class="sub">a precio de venta: {{ valor.retail|money }} · {{ valor.items }} ítems</div></div>
+  <div class="kpi"><div class="label">Cuentas por cobrar (clientes)</div>
+    <div class="value">{{ cc_saldo|money }}</div>
+    <div class="sub">deuda de clientes con cuenta corriente</div></div>
+  <div class="kpi"><div class="label">Cuentas por pagar (proveedores)</div>
+    <div class="value">{{ prov_saldo|money }}</div>
+    <div class="sub">deuda con proveedores</div></div>
+</div>
+
+<div class="grid grid-2" style="margin-top:1rem">
+  <div class="card">
+    <h2>Ventas — últimos 7 días</h2>
+    <div class="bars">
+      {% for d in serie %}
+      <div class="bar-col">
+        <span class="v">{{ '%.0f'|format(d.total) }}</span>
+        <div class="bar" style="height:{{ (d.total / serie_max * 100)|round(0) if serie_max else 0 }}%"></div>
+        <small>{{ d.dia[8:] }}/{{ d.dia[5:7] }}</small>
+      </div>
+      {% endfor %}
+    </div>
+    {% if not serie|selectattr('total')|list %}
+    <p class="empty">Sin ventas registradas en el período.</p>
+    {% endif %}
+  </div>
+  <div class="card">
+    <h2>Estado de caja</h2>
+    {% if caja %}
+    <p><span class="badge badge-ok">ABIERTA</span> desde {{ caja.opened_at|fecha }} ·
+      saldo inicial {{ caja.initial|money }}</p>
+      <a class="btn primary" href="{{ url_for('admin.caja') }}">Ir a caja</a>
+    {% else %}
+    <p class="muted">No hay una sesión de caja abierta.</p>
+      {% if 'caja.operar' in user_perms %}
+      <a class="btn" href="{{ url_for('admin.caja') }}">Abrir caja</a>
+      {% endif %}
+    {% endif %}
+    <h3>Últimos movimientos de stock</h3>
+    <table>
+      {% for m in movs %}
+      <tr><td>{{ m.datetime|fecha }}</td><td>{{ m.description }}</td>
+        <td><span class="badge {{ 'badge-ok' if m.qty > 0 else 'badge-err' }}">{{ m.qty|qty }} {{ m.base_unit if m.base_unit is defined else '' }}</span></td>
+        <td class="muted small">{{ m.type }}</td></tr>
+      {% else %}<tr><td class="empty">Sin movimientos.</td></tr>{% endfor %}
+    </table>
+  </div>
+</div>
+
+<div class="grid grid-2" style="margin-top:.2rem">
+  <div class="card">
+    <h2>Productos más vendidos del mes</h2>
+    <table>
+      <thead><tr><th>Producto</th><th class="num">Unidades</th><th class="num">Importe</th></tr></thead>
+      <tbody>
+      {% for t in top %}
+      <tr><td>{{ t.description }}</td><td class="num">{{ t.q|qty }}</td><td class="num">{{ t.t|money }}</td></tr>
+      {% else %}<tr><td colspan="3" class="empty">Sin datos todavía.</td></tr>{% endfor %}
+      </tbody>
+    </table>
+  </div>
+  <div class="card">
+    <h2>Últimas ventas</h2>
+    <table>
+      <thead><tr><th>Nº</th><th>Fecha</th><th class="num">Total</th><th>Estado</th></tr></thead>
+      <tbody>
+      {% for s in ultimos %}
+      <tr>
+        <td><a href="{{ url_for('pos.venta_detalle', sale_id=s.id) }}">{{ s.number }}</a></td>
+        <td>{{ s.datetime|fecha }}</td>
+        <td class="num">{{ s.total|money }}</td>
+        <td><span class="badge {{ 'badge-err' if s.status=='anulada' else 'badge-ok' }}">{{ s.status }}</span>
+            <span class="badge badge-info">{{ s.payment_status }}</span></td>
+      </tr>
+      {% else %}<tr><td colspan="4" class="empty">Sin ventas todavía.</td></tr>{% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

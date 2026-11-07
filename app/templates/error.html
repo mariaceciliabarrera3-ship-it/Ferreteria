@@ -1,0 +1,11 @@
+{% extends 'base.html' %}
+{% block title %}Error {{ code }}{% endblock %}
+{% set tarjeta %}
+<div class="card error-card">
+  <h1>{{ code }}</h1>
+  <p>{{ message }}</p>
+  {% if current_user %}<a class="btn" href="{{ url_for('main.dashboard') }}">Volver al panel</a>{% endif %}
+</div>
+{% endset %}
+{% block content %}{{ tarjeta }}{% endblock %}
+{% block public %}<main class="content"><div class="page">{{ tarjeta }}</div></main>{% endblock %}
