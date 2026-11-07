@@ -1,0 +1,94 @@
+{% extends 'base.html' %}
+{% block title %}Punto de venta{% endblock %}
+{% block content %}
+<h1>Punto de venta</h1>
+<div class="pos-grid">
+  <div>
+    <div class="card pos-search">
+      <label class="small bold" for="pos-q">Buscar producto (nombre, código o escanear código de barras — Enter agrega)</label>
+      <input id="pos-q" placeholder="Escanee o escriba para buscar…" autocomplete="off" autofocus>
+      <div class="pos-results" id="pos-results"></div>
+    </div>
+    <div class="card">
+      <h2 style="margin-top:0">Carrito</h2>
+      <div class="table-wrap">
+        <table class="cart-table">
+          <thead><tr><th>Producto</th><th>Unidad</th><th class="num">Cant.</th>
+            <th class="num">Precio</th><th class="num">Desc.</th><th class="num">Subtotal</th><th></th></tr></thead>
+          <tbody id="cart-body">
+            <tr id="cart-empty"><td colspan="7" class="empty">Agregue productos con el buscador.</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="form-row" style="margin-top:.7rem">
+        <label>Cliente (opcional — obligatorio para cuenta corriente)
+          <select id="sale-customer">
+            <option value="">— Consumidor final —</option>
+            {% for c in customers %}
+            <option value="{{ c.id }}">{{ c.name }}{% if c.doc %} ({{ c.doc }}){% endif %}</option>
+            {% endfor %}
+          </select>
+        </label>
+        <label>Notas
+          <input id="sale-notes" placeholder="Observaciones de la operación">
+        </label>
+      </div>
+    </div>
+  </div>
+
+  <div>
+    <div class="card">
+      <h2 style="margin-top:0">Cobro</h2>
+      <div class="total-box">
+        <div class="row"><span>Subtotal</span><span id="t-subtotal">$ 0,00</span></div>
+        <div class="row"><span>Descuentos</span><span id="t-discount">-$ 0,00</span></div>
+        <div class="row"><span>Impuestos</span><span id="t-tax">$ 0,00</span></div>
+        <div class="row grand"><span>TOTAL</span><span id="t-total">$ 0,00</span></div>
+      </div>
+      <p class="hint" id="tax-note">Los impuestos se calculan en el servidor con la configuración activa.</p>
+
+      <h3>Medios de pago (admite pagos mixtos)</h3>
+      <div class="pay-grid" id="pay-methods">
+        <div class="pay-method on" data-method="efectivo">Efectivo</div>
+        <div class="pay-method" data-method="transferencia">Transferencia</div>
+        <div class="pay-method" data-method="debito">Débito</div>
+        <div class="pay-method" data-method="credito">Crédito</div>
+        <div class="pay-method" data-method="cuenta_corriente">Cta. cte.</div>
+      </div>
+      <div id="pay-amounts" style="margin-top:.6rem"></div>
+
+      <div id="transfer-panel" class="hidden" style="margin-top:.6rem">
+        <fieldset>
+          <legend>Datos de la transferencia (queda PENDIENTE de verificación)</legend>
+          <label>Banco / entidad
+            <select id="tr-bank">
+              {% for a in transfer_accounts %}
+              <option value="{{ a.bank }}">{{ a.bank }} — {{ a.alias or a.cbu }}</option>
+              {% endfor %}
+              <option value="Otro">Otro</option>
+            </select>
+          </label>
+          <label>Referencia o número de operación
+            <input id="tr-ref" placeholder="Ej.: 12345678 / CTA-000123">
+          </label>
+          <label style="display:flex;gap:.5rem;align-items:center;font-weight:400">
+            <input type="checkbox" id="tr-informed" style="width:auto">
+            El cliente informó que ya realizó la transferencia
+          </label>
+          <p class="hint">⚠ Nunca se considera acreditada automáticamente: un administrador debe verificarla en «Transferencias».</p>
+        </fieldset>
+      </div>
+
+      <label style="display:flex;gap:.5rem;align-items:center;font-weight:400">
+        <input type="checkbox" id="allow-negative" style="width:auto">
+        Autorizar stock negativo <span class="hint">(requiere permiso de administrador)</span>
+      </label>
+      <button class="btn success full" id="btn-bill" style="margin-top:.7rem">Cobrar y emitir comprobante</button>
+      <p class="hint" id="pos-status"></p>
+    </div>
+  </div>
+</div>
+{% endblock %}
+{% block scripts %}
+<script src="{{ url_for('static', filename='pos.js') }}"></script>
+{% endblock %}

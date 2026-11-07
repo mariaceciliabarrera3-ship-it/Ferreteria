@@ -1,0 +1,26 @@
+{% extends 'base.html' %}
+{% block title %}Mi cuenta{% endblock %}
+{% block content %}
+<h1>Mi cuenta</h1>
+<div class="grid grid-2">
+  <div class="card">
+    <h2 style="margin-top:0">Datos</h2>
+    <table>
+      <tr><td>Usuario</td><td class="mono">{{ current_user.username }}</td></tr>
+      <tr><td>Nombre</td><td>{{ current_user.full_name or '—' }}</td></tr>
+      <tr><td>Rol</td><td><span class="badge badge-info">{{ current_user.role }}</span></td></tr>
+      <tr><td>Permisos</td>
+        <td class="small">{% for p in user_perms %}<span class="badge badge-mut">{{ p }}</span> {% endfor %}</td></tr>
+    </table>
+  </div>
+  <div class="card">
+    <h2 style="margin-top:0">Cambiar contraseña</h2>
+    <form method="post">
+      <input type="hidden" name="_csrf" value="{{ csrf_token }}">
+      <label>Contraseña actual <input type="password" name="actual" required></label>
+      <label>Nueva contraseña (mínimo 8) <input type="password" name="nueva" required></label>
+      <button class="btn primary">Actualizar contraseña</button>
+    </form>
+  </div>
+</div>
+{% endblock %}

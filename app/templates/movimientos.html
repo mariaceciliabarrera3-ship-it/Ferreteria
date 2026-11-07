@@ -1,0 +1,43 @@
+{% extends 'base.html' %}
+{% block title %}Movimientos de inventario{% endblock %}
+{% block content %}
+<h1>Movimientos de inventario</h1>
+<div class="card">
+  <form class="toolbar" method="get">
+    <input name="q" value="{{ q }}" placeholder="Producto…" style="min-width:200px">
+    <select name="tipo">
+      <option value="">Todos los tipos</option>
+      {% for t in ['inventario_inicial','compra','venta','devolucion','anulacion','ajuste','entrada','rotura','perdida','inventario'] %}
+      <option value="{{ t }}" {{ 'selected' if tipo==t }}>{{ t }}</option>
+      {% endfor %}
+    </select>
+    <button class="btn primary">Filtrar</button>
+    <span class="spacer"></span>
+    <a class="btn" href="{{ url_for('reports.exportar', tipo='movimientos') }}">⬇ CSV</a>
+    {% if 'stock.modificar' in user_perms %}
+    <a class="btn success" href="{{ url_for('products.ajuste') }}">+ Movimiento manual</a>
+    {% endif %}
+  </form>
+</div>
+<div class="table-wrap">
+<table>
+  <thead><tr><th>Fecha</th><th>Producto</th><th>Tipo</th><th class="num">Cantidad</th>
+    <th class="num">Stock resultante</th><th>Usuario</th><th>Motivo</th><th>Referencia</th></tr></thead>
+  <tbody>
+  {% for m in movimientos %}
+  <tr>
+    <td class="small">{{ m.datetime|fecha }}</td>
+    <td><span class="mono small">{{ m.code }}</span> {{ m.description }}</td>
+    <td><span class="badge {{ 'badge-ok' if m.qty>0 else 'badge-err' }}">{{ m.type }}</span></td>
+    <td class="num {{ 'bold' if m.qty>0 }}">{{ m.qty|qty }} {{ m.base_unit }}</td>
+    <td class="num">{{ m.stock_after|qty }}</td>
+    <td class="small">{{ m.username or '—' }}</td>
+    <td class="small">{{ m.reason }}</td>
+    <td class="small muted">{{ m.ref_type }}{% if m.ref_id %}#{{ m.ref_id }}{% endif %}</td>
+  </tr>
+  {% else %}<tr><td colspan="8" class="empty">Sin movimientos.</td></tr>
+  {% endfor %}
+  </tbody>
+</table>
+</div>
+{% endblock %}

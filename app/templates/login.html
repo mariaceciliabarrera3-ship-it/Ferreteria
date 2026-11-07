@@ -1,0 +1,24 @@
+{% extends 'base.html' %}
+{% block title %}Iniciar sesión{% endblock %}
+{% block public %}
+<div class="login-wrap">
+  <div class="login-card">
+    <div class="brand big"><span class="brand-mark">FG</span>
+      <div><strong>FerreGest AR</strong><small>Sistema de gestión para ferreterías</small></div></div>
+    {% with msgs = get_flashed_messages(with_categories=true) %}
+      {% for cat, m in msgs %}<div class="flash flash-{{ cat }}">{{ m }}</div>{% endfor %}
+    {% endwith %}
+    <form method="post">
+      <input type="hidden" name="_csrf" value="{{ csrf_token }}">
+      <label>Usuario
+        <input name="username" autofocus required autocomplete="username">
+      </label>
+      <label>Contraseña
+        <input type="password" name="password" required autocomplete="current-password">
+      </label>
+      <button class="btn primary full" type="submit">Ingresar al sistema</button>
+    </form>
+    <p class="muted small">Instalación independiente · Datos alojados localmente · Demo: admin / admin123</p>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,48 @@
+{% extends 'base.html' %}
+{% block title %}Licencia{% endblock %}
+{% block content %}
+<h1>Licencia de la instalación</h1>
+<div class="grid grid-4">
+  <div class="kpi {{ 'err' if state.suspended else ('warn' if state.status in ('por_vencer','vencida_gracia') else 'good') }}">
+    <div class="label">Estado</div>
+    <div class="value" style="font-size:1.2rem">{{ state.status }}</div>
+    <div class="sub">{{ state.message }}</div></div>
+  <div class="kpi"><div class="label">ID de instalación</div>
+    <div class="value mono" style="font-size:.95rem">{{ state.install_id }}</div>
+    <div class="sub">identifica este comercio sin enviar datos comerciales</div></div>
+  <div class="kpi"><div class="label">Licencia</div>
+    <div class="value" style="font-size:1rem">{{ state.license_id or '—' }}</div>
+    <div class="sub">{{ state.client or 'sin cliente asignado' }}</div></div>
+  <div class="kpi"><div class="label">Vencimiento</div>
+    <div class="value" style="font-size:1rem">{{ state.expires_at or '—' }}</div>
+    <div class="sub">{% if state.days_left is not none %}{{ state.days_left }} día(s) restantes · gracia {{ state.grace_days }}d{% endif %}</div></div>
+</div>
+
+<div class="grid grid-2" style="margin-top:1rem">
+  <div class="card">
+    <h2 style="margin-top:0">Importar licencia (restitución / renovación)</h2>
+    <p class="hint">Pegue el archivo de licencia firmada que le entregó la proveedora del
+    sistema. Al importarla válida se reactiven las operaciones comerciales si estaba suspendida.
+    <strong>No se envía información del comercio a ningún servidor</strong>: la verificación
+    es local y criptográfica (HMAC-SHA256).</p>
+    <form method="post">
+      <input type="hidden" name="_csrf" value="{{ csrf_token }}">
+      <label>Contenido de la licencia
+        <textarea name="payload" rows="6" placeholder="eyJwIjoi…" required></textarea></label>
+      <button class="btn primary">Importar y activar</button>
+    </form>
+  </div>
+  <div class="card">
+    <h2 style="margin-top:0">Protección de sus datos</h2>
+    <ul class="small">
+      <li>La suspensión por licencia <strong>nunca borra</strong> ventas, productos, clientes ni movimientos.</li>
+      <li>Con licencia suspendida puede <strong>consultar</strong> todo y <strong>exportar</strong>
+        la información completa.</li>
+      <li>La reinstalación con licencia válida reanuda las operaciones sin pérdida de datos.</li>
+    </ul>
+    <a class="btn success" href="{{ url_for('admin.licencias_exportar') }}">⬇ Exportar datos del comercio (JSON)</a>
+    <p class="hint" style="margin-top:.8rem">Última verificación local: {{ row.last_check|fecha if row and row.last_check else '—' }}
+      · Período de gracia: {{ state.grace_days }} días · Aviso previo: {{ state.warn_days }} días antes</p>
+  </div>
+</div>
+{% endblock %}
