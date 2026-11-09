@@ -45,6 +45,22 @@ def is_production() -> bool:
     return mode() == PRODUCTION
 
 
+def require_license() -> bool:
+    """¿Esta instalación exige licencia válida? (predeterminado: sí).
+
+    ``FERREGEST_REQUIRE_LICENSE=0`` desactiva el control de licencias por
+    completo: no hay bloqueo de operaciones ni cartel en pantalla, en
+    cualquier modo. Pensado para una copia de trabajo/desarrollo propia,
+    sin modelo de licenciamiento.
+
+    Con ``1`` (o sin definir la variable) se conserva el comportamiento
+    auditado ARQ-04: producción sin licencia válida = operaciones
+    comerciales bloqueadas. Ese es el default, así que una copia que se
+    baje el repo sin configurar nada sigue teniendo el candado puesto.
+    """
+    return (os.environ.get("FERREGEST_REQUIRE_LICENSE", "1") or "1").strip() != "0"
+
+
 def default_db_path() -> str:
     """Ruta por defecto de la base (junto al paquete ``app``)."""
     base = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
