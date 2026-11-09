@@ -153,7 +153,7 @@ legend{font-size:.8rem;font-weight:700;color:var(--muted);padding:0 .3rem}
 
 /* ---------- gráficos ---------- */
 .bars{display:flex;align-items:flex-end;gap:6px;height:140px;padding-top:.5rem}
-.bar-col{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;min-width:0}
+.bar-col{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;gap:3px;min-width:0;height:100%}
 .bar{width:100%;background:linear-gradient(180deg,var(--brand-2),var(--brand));border-radius:5px 5px 0 0;min-height:2px}
 .bar-col small{font-size:.62rem;color:var(--muted);white-space:nowrap}
 .bar-col .v{font-size:.66rem;font-weight:700;color:#334155}
