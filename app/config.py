@@ -61,6 +61,22 @@ def require_license() -> bool:
     return (os.environ.get("FERREGEST_REQUIRE_LICENSE", "1") or "1").strip() != "0"
 
 
+def setup_wizard() -> bool:
+    """¿Esta instalación debe pedirle a la dueña que cree su propio usuario
+    administrador en el primer arranque, en vez de crear uno automático?
+
+    ``FERREGEST_SETUP_WIZARD=1`` activa la pantalla de configuración inicial
+    (nombre, usuario y contraseña a elección) y evita el usuario ``admin``
+    con clave generada o ``admin123``. Pensado para la copia que recibe un
+    comercio, no para desarrollo ni para las pruebas automatizadas (que
+    siguen usando ``admin``/``admin123`` como hasta ahora).
+
+    Por defecto está apagado (``0``), así que nada de lo existente cambia
+    si no se define esta variable.
+    """
+    return (os.environ.get("FERREGEST_SETUP_WIZARD", "0") or "0").strip() == "1"
+
+
 def default_db_path() -> str:
     """Ruta por defecto de la base (junto al paquete ``app``)."""
     base = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
