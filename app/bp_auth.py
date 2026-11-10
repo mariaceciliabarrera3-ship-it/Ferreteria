@@ -43,8 +43,65 @@ def safe_next(candidate: str | None, fallback: str | None = None) -> str:
     return candidate
 
 
+@bp.route("/configurar-inicial", methods=["GET", "POST"])
+def configurar_inicial():
+    """Primer arranque con FERREGEST_SETUP_WIZARD=1: la dueña elige su
+    propio usuario, nombre y contraseña en vez de recibir un ``admin``
+    con clave generada. Sólo funciona mientras no exista ningún usuario;
+    una vez creado el primero, esta pantalla vuelve a /login para siempre.
+    """
+    n_users = query("SELECT COUNT(*) AS c FROM users", one=True)["c"]
+    if n_users > 0:
+        return redirect(url_for("auth.login"))
+
+    from .security import ensure_csrf
+
+    ensure_csrf()
+    if request.method == "POST":
+        full_name = (request.form.get("full_name") or "").strip()[:120]
+        username = (request.form.get("username") or "").strip().lower()[:64]
+        password = request.form.get("password") or ""
+        password2 = request.form.get("password2") or ""
+        errores = []
+        if not full_name:
+            errores.append("Ingrese su nombre.")
+        if not username or len(username) < 3:
+            errores.append("El usuario debe tener al menos 3 caracteres.")
+        if len(password) < 8:
+            errores.append("La contraseña debe tener al menos 8 caracteres.")
+        if password != password2:
+            errores.append("Las contraseñas no coinciden.")
+        if password and password.lower() in ("admin123", "12345678", "password", username):
+            errores.append("Elija una contraseña menos predecible.")
+        if errores:
+            for e in errores:
+                flash(e, "error")
+            return render_template("configuracion_inicial.html",
+                                   full_name=full_name, username=username), 400
+
+        execute(
+            "INSERT INTO users (username, password_hash, full_name, role, perms, created_at) "
+            "VALUES (?, ?, ?, 'administrador', '{}', ?)",
+            (username, hash_password(password), full_name, now_iso()),
+        )
+        user = query("SELECT * FROM users WHERE username = ?", (username,), one=True)
+        session.clear()
+        session["user_id"] = user["id"]
+        session.permanent = True
+        ensure_csrf()
+        audit("usuario_inicial_creado", "usuario", user["id"], {"username": username})
+        flash(f"Bienvenida, {full_name}. Su cuenta quedó creada.", "ok")
+        return redirect(url_for("main.dashboard"))
+
+    return render_template("configuracion_inicial.html", full_name="", username="")
+
+
 @bp.route("/login", methods=["GET", "POST"])
 def login():
+    if cfg.setup_wizard():
+        n_users = query("SELECT COUNT(*) AS c FROM users", one=True)["c"]
+        if n_users == 0:
+            return redirect(url_for("auth.configurar_inicial"))
     if request.method == "POST":
         username = (request.form.get("username") or "").strip()[:64]
         password = request.form.get("password") or ""
