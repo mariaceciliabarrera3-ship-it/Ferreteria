@@ -1,0 +1,38 @@
+{% extends 'base.html' %}
+{% block title %}Bienvenida — configure su cuenta{% endblock %}
+{% block public %}
+<div class="login-wrap">
+  <div class="login-card">
+    <div class="brand big"><span class="brand-mark">FG</span>
+      <div><strong>FerreGest AR</strong><small>Primer arranque: cree su cuenta de administradora</small></div></div>
+    {% with msgs = get_flashed_messages(with_categories=true) %}
+      {% for cat, m in msgs %}<div class="flash flash-{{ cat }}">{{ m }}</div>{% endfor %}
+    {% endwith %}
+    <p class="muted small">Esta es la primera vez que se abre el sistema en esta
+      computadora. Elija su propio usuario y contraseña — nadie más los conoce,
+      ni quedan guardados en ningún archivo.</p>
+    <form method="post">
+      <input type="hidden" name="_csrf" value="{{ csrf_token }}">
+      <label>Su nombre
+        <input name="full_name" autofocus required autocomplete="name"
+               value="{{ full_name }}" placeholder="Ej.: Gisela Pérez">
+      </label>
+      <label>Usuario para ingresar
+        <input name="username" required autocomplete="username" minlength="3"
+               value="{{ username }}" placeholder="Ej.: gisela">
+      </label>
+      <label>Contraseña
+        <input type="password" name="password" required autocomplete="new-password"
+               minlength="8" placeholder="Mínimo 8 caracteres">
+      </label>
+      <label>Repita la contraseña
+        <input type="password" name="password2" required autocomplete="new-password"
+               minlength="8">
+      </label>
+      <button class="btn primary full" type="submit">Crear mi cuenta y entrar</button>
+    </form>
+    <p class="muted small">Guarde su usuario y contraseña en un lugar seguro:
+      son los únicos que va a necesitar de ahora en más.</p>
+  </div>
+</div>
+{% endblock %}
