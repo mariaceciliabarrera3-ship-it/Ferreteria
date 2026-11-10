@@ -217,7 +217,12 @@ def session_csrf():
 def _bootstrap():
     """Primer arranque: licencia local, unidades por defecto y admin inicial."""
     n_users = dbm.query("SELECT COUNT(*) AS c FROM users", one=True)["c"]
-    if n_users == 0:
+    if n_users == 0 and cfg.setup_wizard():
+        # FERREGEST_SETUP_WIZARD=1: no crear ningún usuario automático.
+        # La propia dueña va a elegir su usuario y clave en /configurar-inicial
+        # la primera vez que abra la aplicación.
+        pass
+    elif n_users == 0:
         from .security import hash_password
 
         env_pw = os.environ.get("FERREGEST_ADMIN_PASSWORD", "").strip()
